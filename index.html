@@ -9,22 +9,21 @@
 </head>
 <body>
     <div class="container">
-        <header class="header">
-            <h1 class="title">GIRL, the Butler</h1>
-        </header>
-
+        <!-- Authentication Section -->
         <div class="auth-section">
             <div class="auth-card">
                 <div class="auth-icon">
-                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M32 8L8 20v24l24 12 24-12V20L32 8z"/>
-                        <path d="M8 20l24 12 24-12"/>
-                        <path d="M32 32v24"/>
+                    <!-- Hand Drawn Shield Icon (from your Canva design) -->
+                    <svg width="80" height="80" viewBox="0 0 80 80" fill="none" stroke="#2d2d2d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M40 10L15 20v25c0 15 25 25 25 25s25-10 25-25V20L40 10z"/>
+                        <path d="M28 40l8 8 16-16"/>
                     </svg>
                 </div>
-                <h2>Welcome to The House</h2>
-                <p class="auth-description">Please authenticate to continue.</p>
                 
+                <h1>GIRL, the Butler</h1>
+                <p class="auth-description">Please authenticate to continue</p>
+                
+                <!-- LINE Login Button -->
                 <button id="line-login-btn" class="btn btn-line">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .349-.281.63-.63.63-.345 0-.627-.281-.627-.63V8.108c0-.345.282-.63.63-.63.345 0 .627.285.627.63v4.771zm-3.855 0c0 .349-.282.63-.627.63-.344 0-.626-.281-.626-.63V9.863l-1.629 2.771c-.349.594-1.271.594-1.62 0L6.21 9.863v3.016c0 .349-.282.63-.627.63-.344 0-.626-.281-.626-.63V8.108c0-.345.282-.63.626-.63.225 0 .423.12.531.315l2.226 3.781 2.226-3.781c.108-.195.306-.315.531-.315.345 0 .627.285.627.63v4.771zM3.81 8.108c0-.345-.282-.63-.627-.63-.344 0-.626.285-.626.63v4.771c0 .349.282.63.626.63.345 0 .627-.281.627-.63V8.108z"/>
@@ -34,7 +33,57 @@
             </div>
         </div>
 
-        <footer class="footer">
+        <!-- Role Selection (hidden until after LINE auth) -->
+        <div id="role-section" class="role-section hidden">
+            <h2>Select Your Role</h2>
+            
+            <div class="role-buttons">
+                <!-- Seller Button -->
+                <a href="seller.html" class="btn btn-role" data-role="seller">
+                    <div class="role-icon">
+                        <!-- Hand Drawn Shopping Bag Icon -->
+                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 15h24l-3 25H15L12 15z"/>
+                            <path d="M18 15V10c0-3 3-5 6-5s6 2 6 5v5"/>
+                        </svg>
+                    </div>
+                    <span class="role-name">Seller</span>
+                    <small>Report sales & view reports</small>
+                </a>
+
+                <!-- Administrator Button -->
+                <a href="administrator.html" class="btn btn-role" data-role="administrator">
+                    <div class="role-icon">
+                        <!-- Hand Drawn Gear Icon -->
+                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="24" cy="24" r="8"/>
+                            <path d="M24 4v6M24 38v6M44 24h-6M10 24H4M38 10l-4 4M14 34l-4 4M38 38l-4-4M14 14l-4-4"/>
+                        </svg>
+                    </div>
+                    <span class="role-name">Administrator</span>
+                    <small>Manage prompts & view dashboard</small>
+                </a>
+
+                <!-- Viewer Button -->
+                <a href="viewer.html" class="btn btn-role" data-role="viewer">
+                    <div class="role-icon">
+                        <!-- Hand Drawn Chart Icon -->
+                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M8 40h32M12 40V20M20 40V12M28 40V24M36 40V16"/>
+                        </svg>
+                    </div>
+                    <span class="role-name">Viewer</span>
+                    <small>View dashboard reports</small>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/timezone.js"></script>
+    <script src="assets/js/auth.js"></script>
+</body>
+</html>        <footer class="footer">
             <p>&copy; 2026 GIRL, the Butler</p>
         </footer>
     </div>
