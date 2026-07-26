@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viewer Dashboard | GIRL, the Butler</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">Viewer Dashboard</h1>
+            <a href="index.html" class="nav-btn">← Back to Home</a>
+        </header>
+
+        <main class="page-content">
+            <div class="placeholder-card">
+                <h2>Reports Page</h2>
+                <p>This page will display dashboard reports for viewers.</p>
+                <p>Security: Only accessible to users with the "viewer" role.</p>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2026 GIRL, the Butler</p>
+        </footer>
+    </div>
+
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script>
+        // Security check: redirect if not viewer
+        checkRoleAccess('viewer');
+    </script>
+</body>
+</html>
