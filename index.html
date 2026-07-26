@@ -8,12 +8,17 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <div class="container">
+    <!-- Background Pattern Container -->
+    <div class="background-pattern">
+        <!-- SVG Icons will be injected here by CSS or JS, or you can use a background image -->
+    </div>
+
+    <div class="main-container">
         <!-- Authentication Section -->
         <div class="auth-section">
             <div class="auth-card">
                 <div class="auth-icon">
-                    <!-- Hand Drawn Shield Icon (from your Canva design) -->
+                    <!-- Hand Drawn Shield Icon -->
                     <svg width="80" height="80" viewBox="0 0 80 80" fill="none" stroke="#2d2d2d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M40 10L15 20v25c0 15 25 25 25 25s25-10 25-25V20L40 10z"/>
                         <path d="M28 40l8 8 16-16"/>
@@ -39,7 +44,7 @@
             
             <div class="role-buttons">
                 <!-- Seller Button -->
-                <a href="seller.html" class="btn btn-role" data-role="seller">
+                <a href="seller.html" class="btn btn-role seller">
                     <div class="role-icon">
                         <!-- Hand Drawn Shopping Bag Icon -->
                         <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -52,7 +57,7 @@
                 </a>
 
                 <!-- Administrator Button -->
-                <a href="administrator.html" class="btn btn-role" data-role="administrator">
+                <a href="administrator.html" class="btn btn-role administrator">
                     <div class="role-icon">
                         <!-- Hand Drawn Gear Icon -->
                         <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -65,7 +70,7 @@
                 </a>
 
                 <!-- Viewer Button -->
-                <a href="viewer.html" class="btn btn-role" data-role="viewer">
+                <a href="viewer.html" class="btn btn-role viewer">
                     <div class="role-icon">
                         <!-- Hand Drawn Chart Icon -->
                         <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -79,14 +84,9 @@
         </div>
     </div>
 
-    <script src="assets/js/config.js"></script>
-    <script src="assets/js/timezone.js"></script>
-    <script src="assets/js/auth.js"></script>
-</body>
-</html>        <footer class="footer">
-            <p>&copy; 2026 GIRL, the Butler</p>
-        </footer>
-    </div>
+    <footer class="footer">
+        <p>&copy; 2026 GIRL, the Butler</p>
+    </footer>
 
     <script src="assets/js/config.js"></script>
     <script src="assets/js/timezone.js"></script>
