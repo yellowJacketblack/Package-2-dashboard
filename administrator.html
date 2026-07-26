@@ -3,35 +3,321 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administrator Panel | GIRL, the Butler</title>
+    <title>GIRL, the Butler — Administrator</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <h1 class="title">Administrator Panel</h1>
-            <a href="index.html" class="nav-btn">← Back to Home</a>
-        </header>
+    <!-- Background Pattern -->
+    <div class="background-pattern"></div>
 
-        <main class="page-content">
-            <div class="placeholder-card">
-                <h2>Admin Prompts & Dashboard</h2>
-                <p>This page will handle inventory prompts, sell prompts, and Google Trends CSV uploads.</p>
-                <p>Security: Only accessible to users with the "administrator" role.</p>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="auth-card" style="max-width: 100%; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h1 style="font-size: 1.8rem; margin: 0;">GIRL, the Butler</h1>
+                    <p style="margin: 5px 0 0 0; color: #555;">Administrator Panel</p>
+                </div>
+                <button id="logout-btn" class="btn" style="background: #ff6b6b; color: white; padding: 10px 20px; font-size: 0.9rem;">
+                    Logout
+                </button>
             </div>
-        </main>
+        </div>
 
-        <footer class="footer">
-            <p>&copy; 2026 GIRL, the Butler</p>
-        </footer>
+        <!-- ============================================
+             SECTION 1: Pending Users
+             ============================================ -->
+        <div class="auth-card" style="max-width: 100%; margin-bottom: 20px;">
+            <h2 style="font-size: 1.5rem; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">
+                Pending Users
+            </h2>
+            <p style="color: #555; margin-bottom: 20px;">
+                Users who authenticated with LINE but haven't been assigned a role yet.
+            </p>
+
+            <div id="pending-users-list">
+                <!-- Loading state -->
+                <div id="pending-loading" style="text-align: center; padding: 30px; color: #777;">
+                    <p>Loading pending users...</p>
+                </div>
+                <!-- Pending user cards injected here by JS -->
+            </div>
+
+            <div id="pending-empty" class="hidden" style="text-align: center; padding: 30px; color: #777;">
+                <p>No pending users. Everyone has been assigned.</p>
+            </div>
+        </div>
+
+        <!-- ============================================
+             SECTION 2: Existing Users
+             ============================================ -->
+        <div class="auth-card" style="max-width: 100%; margin-bottom: 20px;">
+            <h2 style="font-size: 1.5rem; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">
+                Existing Users
+            </h2>
+            <p style="color: #555; margin-bottom: 20px;">
+                All registered users and their current roles.
+            </p>
+
+            <div id="existing-users-list">
+                <div id="existing-loading" style="text-align: center; padding: 30px; color: #777;">
+                    <p>Loading users...</p>
+                </div>
+                <!-- Existing user cards injected here by JS -->
+            </div>
+
+            <div id="existing-empty" class="hidden" style="text-align: center; padding: 30px; color: #777;">
+                <p>No users registered yet.</p>
+            </div>
+        </div>
+
+        <!-- ============================================
+             SECTION 3: Dashboard Preview (placeholder for now)
+             ============================================ -->
+        <div class="auth-card" style="max-width: 100%; margin-bottom: 20px;">
+            <h2 style="font-size: 1.5rem; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">
+                Dashboard Preview
+            </h2>
+            <p style="color: #555;">
+                Reports and charts will appear here (same as viewer.html).
+            </p>
+            <p style="color: #777; font-size: 0.9rem; margin-top: 10px;">
+                + Admin-only prompt forms (inventory, sells, Google Trends, ROI)
+            </p>
+            <!-- TODO: Build dashboard content in next phase -->
+        </div>
     </div>
 
+    <footer class="footer">
+        <p>&copy; 2026 GIRL, the Butler</p>
+    </footer>
+
+    <!-- Scripts -->
     <script src="assets/js/config.js"></script>
+    <script src="assets/js/timezone.js"></script>
     <script src="assets/js/auth.js"></script>
     <script>
-        // Security check: redirect if not administrator
-        checkRoleAccess('administrator');
+        // ============================================
+        // Administrator Page Logic
+        // ============================================
+        (async () => {
+            // ── Guard: only administrators can access ──
+            const accessGranted = await checkRoleAccess('administrator');
+            if (!accessGranted) return;
+
+            // ── Load data ──
+            await loadPendingUsers();
+            await loadExistingUsers();
+
+            // ── Logout button ──
+            document.getElementById('logout-btn').addEventListener('click', logout);
+        })();
+
+        // ============================================
+        // SECTION 1: Pending Users
+        // ============================================
+        async function loadPendingUsers() {
+            const loadingEl = document.getElementById('pending-loading');
+            const emptyEl = document.getElementById('pending-empty');
+            const listEl = document.getElementById('pending-users-list');
+
+            try {
+                // Call the Edge Function
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                
+                const response = await fetch(
+                    'https://imvpwcuzzjgcpikwgwqd.supabase.co/functions/v1/pending-users',
+                    {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${session.access_token}`,
+                            'apikey': SUPABASE_ANON_KEY,
+                        },
+                    }
+                );
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to fetch pending users');
+                }
+
+                loadingEl.classList.add('hidden');
+
+                if (!result.pendingUsers || result.pendingUsers.length === 0) {
+                    emptyEl.classList.remove('hidden');
+                    return;
+                }
+
+                // Render pending user cards
+                listEl.innerHTML = result.pendingUsers.map(user => `
+                    <div class="user-card pending-card">
+                        <div class="user-info">
+                            <div class="user-id">
+                                <strong>LINE User:</strong> 
+                                <span class="mono">${user.id.substring(0, 12)}...</span>
+                            </div>
+                            <div class="user-date">
+                                <strong>Authenticated:</strong> 
+                                ${new Date(user.created_at).toLocaleDateString()}
+                            </div>
+                            ${user.last_sign_in_at ? `
+                                <div class="user-date">
+                                    <strong>Last Login:</strong> 
+                                    ${new Date(user.last_sign_in_at).toLocaleString()}
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="role-assign-buttons">
+                            <button class="btn btn-role-assign viewer" 
+                                    onclick="assignRole('${user.id}', 'viewer')">
+                                Assign as Viewer
+                            </button>
+                            <button class="btn btn-role-assign seller" 
+                                    onclick="assignRole('${user.id}', 'seller')">
+                                Assign as Seller
+                            </button>
+                            <button class="btn btn-role-assign administrator" 
+                                    onclick="assignRole('${user.id}', 'administrator')">
+                                Assign as Administrator
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                loadingEl.classList.add('hidden');
+                listEl.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: #ff6b6b;">
+                        <p>Error: ${err.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // Assign role to a pending user
+        // ============================================
+        async function assignRole(userId, role) {
+            try {
+                const { error } = await supabaseClient
+                    .from('user_profiles')
+                    .insert([
+                        {
+                            line_user_id: userId,
+                            role: role,
+                            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                            last_login: new Date().toISOString(),
+                        }
+                    ]);
+
+                if (error) throw error;
+
+                showToast(`User assigned as ${role}!`, 'success');
+
+                // Reload both lists
+                await loadPendingUsers();
+                await loadExistingUsers();
+
+            } catch (err) {
+                showToast('Failed to assign role: ' + err.message, 'error');
+            }
+        }
+
+        // ============================================
+        // SECTION 2: Existing Users
+        // ============================================
+        async function loadExistingUsers() {
+            const loadingEl = document.getElementById('existing-loading');
+            const emptyEl = document.getElementById('existing-empty');
+            const listEl = document.getElementById('existing-users-list');
+
+            try {
+                const { data: users, error } = await supabaseClient
+                    .from('user_profiles')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                loadingEl.classList.add('hidden');
+
+                if (!users || users.length === 0) {
+                    emptyEl.classList.remove('hidden');
+                    return;
+                }
+
+                listEl.innerHTML = users.map(user => `
+                    <div class="user-card existing-card">
+                        <div class="user-info">
+                            <div class="user-id">
+                                <strong>LINE User:</strong> 
+                                <span class="mono">${user.line_user_id.substring(0, 12)}...</span>
+                            </div>
+                            <div class="user-role">
+                                <strong>Current Role:</strong> 
+                                <span class="role-badge role-${user.role}">${user.role}</span>
+                            </div>
+                            <div class="user-date">
+                                <strong>Last Login:</strong> 
+                                ${user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
+                            </div>
+                            <div class="user-date">
+                                <strong>Timezone:</strong> 
+                                ${user.timezone || 'Not set'}
+                            </div>
+                        </div>
+                        <div class="role-change-section">
+                            <label for="role-select-${user.line_user_id}">Change Role:</label>
+                            <select id="role-select-${user.line_user_id}" 
+                                    class="role-select"
+                                    onchange="changeRole('${user.line_user_id}', this.value)">
+                                <option value="">-- Select --</option>
+                                <option value="viewer">Viewer</option>
+                                <option value="seller">Seller</option>
+                                <option value="administrator">Administrator</option>
+                            </select>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                loadingEl.classList.add('hidden');
+                listEl.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: #ff6b6b;">
+                        <p>Error: ${err.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // Change role for an existing user
+        // ============================================
+        async function changeRole(userId, newRole) {
+            if (!newRole) return;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('user_profiles')
+                    .update({ role: newRole })
+                    .eq('line_user_id', userId);
+
+                if (error) throw error;
+
+                showToast(`Role changed to ${newRole}!`, 'success');
+                await loadExistingUsers();
+
+            } catch (err) {
+                showToast('Failed to change role: ' + err.message, 'error');
+                await loadExistingUsers(); // Reset dropdown
+            }
+        }
+
+        // Make functions globally accessible (for onclick handlers)
+        window.assignRole = assignRole;
+        window.changeRole = changeRole;
     </script>
 </body>
 </html>
