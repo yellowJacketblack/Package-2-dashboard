@@ -1,1 +1,181 @@
+/* Reset & Base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    color: #2d2d2d;
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Auth Section */
+.auth-section {
+    width: 100%;
+    max-width: 400px;
+}
+
+.auth-card {
+    background: white;
+    border: 3px solid #2d2d2d;
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    text-align: center;
+    box-shadow: 6px 6px 0 #2d2d2d;
+    position: relative;
+}
+
+.auth-card::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    border: 2px dashed #2d2d2d;
+    border-radius: 16px;
+    pointer-events: none;
+    opacity: 0.3;
+}
+
+.auth-icon {
+    margin-bottom: 1.5rem;
+    color: #2d2d2d;
+}
+
+.auth-card h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.5px;
+}
+
+.auth-description {
+    color: #666;
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+}
+
+/* LINE Login Button */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    border: 2px solid #2d2d2d;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+    color: #2d2d2d;
+    text-decoration: none;
+}
+
+.btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0 #2d2d2d;
+}
+
+.btn:active {
+    transform: translate(0, 0);
+    box-shadow: none;
+}
+
+.btn-line {
+    background: #06C755;
+    color: white;
+    border-color: #06C755;
+    width: 100%;
+}
+
+.btn-line:hover {
+    box-shadow: 4px 4px 0 #2d2d2d;
+}
+
+/* Role Selection */
+.role-section {
+    width: 100%;
+    max-width: 600px;
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.role-section h2 {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+    color: #2d2d2d;
+}
+
+.role-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem;
+}
+
+.btn-role {
+    flex-direction: column;
+    padding: 2rem 1rem;
+    text-align: center;
+    background: white;
+}
+
+.btn-role:hover {
+    background: #f9f9f9;
+}
+
+.role-icon {
+    margin-bottom: 1rem;
+    color: #2d2d2d;
+}
+
+.role-name {
+    font-size: 1.2rem;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.btn-role small {
+    font-size: 0.8rem;
+    color: #666;
+    font-weight: 400;
+}
+
+/* Utilities */
+.hidden {
+    display: none !important;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .auth-card {
+        padding: 2rem 1rem;
+    }
+    
+    .auth-card h1 {
+        font-size: 1.5rem;
+    }
+    
+    .role-buttons {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
