@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIRL, the Butler</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">GIRL, the Butler</h1>
+        </header>
+
+        <div class="auth-section">
+            <div class="auth-card">
+                <div class="auth-icon">
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M32 8L8 20v24l24 12 24-12V20L32 8z"/>
+                        <path d="M8 20l24 12 24-12"/>
+                        <path d="M32 32v24"/>
+                    </svg>
+                </div>
+                <h2>Welcome to The House</h2>
+                <p class="auth-description">Please authenticate to continue.</p>
+                
+                <button id="line-login-btn" class="btn btn-line">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .349-.281.63-.63.63-.345 0-.627-.281-.627-.63V8.108c0-.345.282-.63.63-.63.345 0 .627.285.627.63v4.771zm-3.855 0c0 .349-.282.63-.627.63-.344 0-.626-.281-.626-.63V9.863l-1.629 2.771c-.349.594-1.271.594-1.62 0L6.21 9.863v3.016c0 .349-.282.63-.627.63-.344 0-.626-.281-.626-.63V8.108c0-.345.282-.63.626-.63.225 0 .423.12.531.315l2.226 3.781 2.226-3.781c.108-.195.306-.315.531-.315.345 0 .627.285.627.63v4.771zM3.81 8.108c0-.345-.282-.63-.627-.63-.344 0-.626.285-.626.63v4.771c0 .349.282.63.626.63.345 0 .627-.281.627-.63V8.108z"/>
+                    </svg>
+                    Login with LINE
+                </button>
+            </div>
+        </div>
+
+        <nav class="main-nav">
+            <a href="about.html" class="nav-btn">About</a>
+            <a href="contact.html" class="nav-btn">Contact</a>
+        </nav>
+
+        <footer class="footer">
+            <p>&copy; 2026 GIRL, the Butler</p>
+        </footer>
+    </div>
+
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/timezone.js"></script>
+    <script src="assets/js/auth.js"></script>
+</body>
+</html>
