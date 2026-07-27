@@ -81,7 +81,7 @@ function showPendingApproval() {
 if (lineLoginBtn) {
     lineLoginBtn.addEventListener('click', async () => {
         const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'custom:line',
+            provider: 'custom:LINE',
             options: {
                 redirectTo: window.location.origin + window.location.pathname
             }
