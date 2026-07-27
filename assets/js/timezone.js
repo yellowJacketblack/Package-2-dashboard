@@ -22,7 +22,7 @@ async function updateTimezoneOnLogin(lineUserId) {
     localStorage.setItem('device_offset', offsetMinutes.toString());
     
     // Update Supabase user_profiles table
-    const { error } = await supabase
+    const { error } = await supabaseClient
         .from('user_profiles')
         .update({ 
             timezone: timezone,
