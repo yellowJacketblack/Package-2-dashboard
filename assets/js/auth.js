@@ -11,7 +11,7 @@ const authSection = document.querySelector('.auth-section');
 // Check for existing session (handles LINE redirect callback)
 // ============================================
 async function handleAuthState() {
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
 
     if (error) {
         console.error('Session error:', error);
@@ -20,7 +20,7 @@ async function handleAuthState() {
 
     if (session) {
         // User is authenticated, check if they have a profile
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile, error: profileError } = await supabaseClient
             .from('user_profiles')
             .select('role')
             .eq('line_user_id', session.user.id)
@@ -80,7 +80,7 @@ function showPendingApproval() {
 // ============================================
 if (lineLoginBtn) {
     lineLoginBtn.addEventListener('click', async () => {
-        const { error } = await supabase.auth.signInWithOAuth({
+        const { error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'custom:LINE',
             options: {
                 redirectTo: window.location.origin + window.location.pathname
@@ -101,7 +101,7 @@ async function syncTimezone(userId) {
     const deviceTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     
     try {
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('user_profiles')
             .update({ 
                 timezone: deviceTimezone,
@@ -122,14 +122,14 @@ async function syncTimezone(userId) {
 // Usage: const profile = await checkRoleAccess('administrator');
 // ============================================
 async function checkRoleAccess(requiredRole) {
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
 
     if (sessionError || !session) {
         window.location.href = 'index.html';
         return null;
     }
 
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await supabaseClient
         .from('user_profiles')
         .select('role, timezone')
         .eq('line_user_id', session.user.id)
@@ -158,7 +158,7 @@ async function checkRoleAccess(requiredRole) {
 // Logout function
 // ============================================
 async function logout() {
-    const { error } = await supabase.auth.signOut();
+    const { error } = await supabaseClient.auth.signOut();
     if (error) {
         console.error('Logout error:', error);
     }
