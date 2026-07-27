@@ -127,7 +127,7 @@
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 
                 const response = await fetch(
-                    'https://imvpwcuzzjgcpikwgwqd.supabaseClient.co/functions/v1/pending-users',
+                    'https://imvpwcuzzjgcpikwgwqd.supabase.co/functions/v1/pending-users',
                     {
                         method: 'GET',
                         headers: {
@@ -201,7 +201,7 @@
         // ============================================
         async function assignRole(userId, role) {
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('user_profiles')
                     .insert([
                         {
@@ -234,7 +234,7 @@
             const listEl = document.getElementById('existing-users-list');
 
             try {
-                const { data: users, error } = await supabase
+                const { data: users, error } = await supabaseClient
                     .from('user_profiles')
                     .select('*')
                     .order('created_at', { ascending: false });
@@ -299,7 +299,7 @@
             if (!newRole) return;
 
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('user_profiles')
                     .update({ role: newRole })
                     .eq('line_user_id', userId);
