@@ -46,7 +46,6 @@ function showPendingApproval() {
     if (authSection) authSection.classList.add('hidden');
     if (roleSection) roleSection.classList.remove('hidden');
     
-    // Replace role selection content with pending message
     if (roleSection) {
         roleSection.innerHTML = `
             <div class="auth-card" style="max-width: 500px; margin: 0 auto;">
@@ -82,7 +81,7 @@ function showPendingApproval() {
 if (lineLoginBtn) {
     lineLoginBtn.addEventListener('click', async () => {
         const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'line',
+            provider: 'custom:line',
             options: {
                 redirectTo: window.location.origin + window.location.pathname
             }
@@ -93,6 +92,29 @@ if (lineLoginBtn) {
             alert('Login failed: ' + error.message);
         }
     });
+}
+
+// ============================================
+// Sync device timezone to user_profiles
+// ============================================
+async function syncTimezone(userId) {
+    const deviceTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    try {
+        const { error } = await supabase
+            .from('user_profiles')
+            .update({ 
+                timezone: deviceTimezone,
+                last_login: new Date().toISOString()
+            })
+            .eq('line_user_id', userId);
+        
+        if (error) {
+            console.log('Timezone sync skipped:', error.message);
+        }
+    } catch (err) {
+        console.log('Timezone sync error:', err);
+    }
 }
 
 // ============================================
@@ -124,123 +146,11 @@ async function checkRoleAccess(requiredRole) {
         window.location.href = `${profile.role}.html`;
         return null;
     }
-
-    return profile;
-}
-
-// ============================================
-// Logout function
-// ============================================
-async function logout() {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-        console.error('Logout error:', error);
+    
+    // Sync timezone if not yet set
+    if (!profile.timezone) {
+        await syncTimezone(session.user.id);
     }
-    window.location.href = 'index.html';
-}
-
-// ============================================
-// Initialize on page load
-// ============================================
-handleAuthState();        }
-    }
-    // If no session, show login button (default state)
-}
-
-// ============================================
-// Show role selection section
-// ============================================
-function showRoleSelection() {
-    if (authSection) authSection.classList.add('hidden');
-    if (roleSection) roleSection.classList.remove('hidden');
-}
-
-// ============================================
-// Handle LINE Login button click
-// ============================================
-if (lineLoginBtn) {
-    lineLoginBtn.addEventListener('click', async () => {
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'line',
-            options: {
-                redirectTo: window.location.origin + window.location.pathname
-            }
-        });
-
-        if (error) {
-            console.error('Login error:', error);
-            alert('Login failed: ' + error.message);
-        }
-    });
-}
-
-// ============================================
-// Handle Role Selection buttons
-// ============================================
-document.querySelectorAll('.btn-role').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-        e.preventDefault();
-
-        const selectedRole = btn.dataset.role;
-
-        // Get current user
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-        if (userError || !user) {
-            console.error('User error:', userError);
-            window.location.href = 'index.html';
-            return;
-        }
-
-        // Create user profile with selected role
-        const { error: insertError } = await supabase
-            .from('user_profiles')
-            .insert({
-                line_user_id: user.id,
-                role: selectedRole,
-                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-            });
-
-        if (insertError) {
-            console.error('Profile creation error:', insertError);
-            alert('Failed to create profile: ' + insertError.message);
-            return;
-        }
-
-        // Redirect to role page
-        window.location.href = `${selectedRole}.html`;
-    });
-});
-
-// ============================================
-// Role Access Check (for protected pages)
-// Usage: const profile = await checkRoleAccess('administrator');
-// ============================================
-async function checkRoleAccess(requiredRole) {
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-    if (sessionError || !session) {
-        window.location.href = 'index.html';
-        return null;
-    }
-
-    const { data: profile, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('role, timezone')
-        .eq('line_user_id', session.user.id)
-        .single();
-
-    if (profileError || !profile) {
-        window.location.href = 'index.html';
-        return null;
-    }
-
-    if (profile.role !== requiredRole) {
-        // Redirect to their actual role page
-        window.location.href = `${profile.role}.html`;
-        return null;
-    }
-
     return profile;
 }
 
