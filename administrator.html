@@ -214,14 +214,14 @@
 
                 if (error) throw error;
 
-                showToast(`User assigned as ${role}!`, 'success');
+                alert(`User assigned as ${role}!`, 'success');
 
                 // Reload both lists
                 await loadPendingUsers();
                 await loadExistingUsers();
 
             } catch (err) {
-                showToast('Failed to assign role: ' + err.message, 'error');
+                alert('Failed to assign role: ' + err.message, 'error');
             }
         }
 
@@ -306,11 +306,11 @@
 
                 if (error) throw error;
 
-                showToast(`Role changed to ${newRole}!`, 'success');
+                alert(`Role changed to ${newRole}!`, 'success');
                 await loadExistingUsers();
 
             } catch (err) {
-                showToast('Failed to change role: ' + err.message, 'error');
+                alert('Failed to change role: ' + err.message, 'error');
                 await loadExistingUsers(); // Reset dropdown
             }
         }
