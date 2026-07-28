@@ -21,6 +21,12 @@ function getLineUserId(session) {
 
     // LINE User ID can be in different locations depending
     // on how the custom OAuth provider is configured
+function getLineUserId(session) {
+    if (!session || !session.user) return null;
+
+    console.log('=== DEBUG: Session Found ===');
+    console.log('Full user_metadata:', JSON.stringify(session.user.user_metadata, null, 2));
+    console.log('Full app_metadata:', JSON.stringify(session.user.app_metadata, null, 2));
     const userId =
         session.user.user_metadata?.provider_id ||
         session.user.user_metadata?.sub ||
