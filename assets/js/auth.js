@@ -29,11 +29,9 @@ function getLineUserId(session) {
         session.user.app_metadata?.sub ||
         null;
 
-    if (!userId) {
-        console.warn('Could not find LINE User ID in session metadata');
-        console.log('user_metadata:', JSON.stringify(session.user.user_metadata, null, 2));
-        console.log('app_metadata:', JSON.stringify(session.user.app_metadata, null, 2));
-        console.log('Full user object keys:', Object.keys(session.user));
+    if (!lineId) {
+        console.log('No LINE User ID found — using Supabase user ID for email user');
+        return session.user.id;
     }
 
     return userId;
@@ -44,6 +42,19 @@ function getLineUserId(session) {
 // ============================================
 async function handleAuthState() {
     console.log('=== handleAuthState() called ===');
+
+     // Handle email redirect / OAuth callback URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlError = urlParams.get('error');
+    const urlErrorDesc = urlParams.get('error_description');
+
+    if (urlError) {
+        console.error('Auth error from URL:', urlError, urlErrorDesc);
+        alert('Login failed: ' + urlErrorDesc);
+        // Clean the URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+    }
     
     const { data: { session }, error } = await supabaseClient.auth.getSession();
 
@@ -148,6 +159,63 @@ if (lineLoginBtn) {
         if (error) {
             console.error('Login error:', error);
             alert('Login failed: ' + error.message);
+        }
+    });
+}
+
+// ============================================
+// Email Login Button - Show Modal
+// ============================================
+const emailLoginBtn = document.getElementById('email-login-btn');
+const emailModal = document.getElementById('email-modal');
+const closeModalBtn = document.getElementById('close-modal');
+const emailLoginForm = document.getElementById('email-login-form');
+
+if (emailLoginBtn) {
+    emailLoginBtn.addEventListener('click', () => {
+        if (emailModal) emailModal.classList.remove('hidden');
+    });
+}
+
+if (closeModalBtn) {
+    closeModalBtn.addEventListener('click', () => {
+        if (emailModal) emailModal.classList.add('hidden');
+    });
+}
+
+// Close modal when clicking outside the content
+if (emailModal) {
+    emailModal.addEventListener('click', (e) => {
+        if (e.target === emailModal) {
+            emailModal.classList.add('hidden');
+        }
+    });
+}
+
+// ============================================
+// Email Login Form Submit (Magic Link)
+// ============================================
+if (emailLoginForm) {
+    emailLoginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email-input').value;
+
+        try {
+            const { error } = await supabaseClient.auth.signInWithOtp({
+                email: email,
+                options: {
+                    emailRedirectTo: window.location.origin + window.location.pathname
+                }
+            });
+
+            if (error) throw error;
+
+            // Show success message
+            emailLoginForm.classList.add('hidden');
+            document.getElementById('email-success').classList.remove('hidden');
+        } catch (error) {
+            console.error('Email login error:', error);
+            alert('Error: ' + error.message);
         }
     });
 }
