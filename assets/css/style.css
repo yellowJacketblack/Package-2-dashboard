@@ -22,6 +22,9 @@
     --admin-color: #a18cd1;
     --seller-color: #ff9a9e;
     --viewer-color: #f6d365;
+    --sketch-border: 3px solid #2d2d2d;
+    --sketch-border-thin: 2px solid #2d2d2d;
+    --sketch-shadow: 5px 5px 0px #2d2d2d;
 }
 
 * {
