@@ -35,9 +35,39 @@
                     </svg>
                     Login with LINE
                 </button>
+                <!-- Email Login Button -->
+                <button id="email-login-btn" class="btn btn-email">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                        <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                    Login with Email
+                </button>
             </div>
         </div>
-
+<!-- Email Input Modal (Hidden by default) -->
+<div id="email-modal" class="modal hidden">
+    <div class="modal-content">
+        <span class="close-btn" id="close-modal">&times;</span>
+        <h2>Enter Your Email</h2>
+        <p class="modal-description">You'll receive a magic link to sign in</p>
+        
+        <form id="email-login-form">
+            <input 
+                type="email" 
+                id="email-input" 
+                placeholder="your@email.com" 
+                required
+                class="email-input"
+            >
+            <button type="submit" class="btn btn-submit">Send Magic Link</button>
+        </form>
+        
+        <div id="email-success" class="success-message hidden">
+            Check your email for a magic link!
+        </div>
+    </div>
+</div>
         <!-- Role Selection (hidden until after LINE auth) -->
         <div id="role-section" class="role-section hidden">
             <h2>Select Your Role</h2>
