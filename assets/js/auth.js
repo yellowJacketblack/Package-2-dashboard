@@ -219,25 +219,6 @@ async function checkRoleAccess(requiredRole) {
 }
 
 // ============================================
-// Handle LINE Login button click
-// ============================================
-if (lineLoginBtn) {
-    lineLoginBtn.addEventListener('click', async () => {
-        const { error } = await supabaseClient.auth.signInWithOAuth({
-            provider: 'custom:LINE',
-            options: {
-                redirectTo: window.location.origin + window.location.pathname
-            }
-        });
-
-        if (error) {
-            console.error('Login error:', error);
-            alert('Login failed: ' + error.message);
-        }
-    });
-}
-
-// ============================================
 // Logout function
 // ============================================
 async function logout() {
