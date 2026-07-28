@@ -15,6 +15,10 @@ const authSection = document.querySelector('.auth-section');
 function getLineUserId(session) {
     if (!session || !session.user) return null;
 
+    console.log('=== DEBUG: Session Found ===');
+    console.log('Full user_metadata:', JSON.stringify(session.user.user_metadata, null, 2));
+    console.log('Full app_metadata:', JSON.stringify(session.user.app_metadata, null, 2));
+
     // LINE User ID can be in different locations depending
     // on how the custom OAuth provider is configured
     const userId =
@@ -39,6 +43,8 @@ function getLineUserId(session) {
 // Check for existing session (handles LINE redirect callback)
 // ============================================
 async function handleAuthState() {
+    console.log('=== handleAuthState() called ===');
+    
     const { data: { session }, error } = await supabaseClient.auth.getSession();
 
     if (error) {
@@ -46,8 +52,11 @@ async function handleAuthState() {
         return;
     }
 
+    console.log('Session object:', session);
+    
     if (!session) {
         // No session — show login button (default state)
+        console.log('No session found — showing login button (default state)');
         return;
     }
 
