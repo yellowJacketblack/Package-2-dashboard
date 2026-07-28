@@ -18,15 +18,6 @@ function getLineUserId(session) {
     console.log('=== DEBUG: Session Found ===');
     console.log('Full user_metadata:', JSON.stringify(session.user.user_metadata, null, 2));
     console.log('Full app_metadata:', JSON.stringify(session.user.app_metadata, null, 2));
-
-    // LINE User ID can be in different locations depending
-    // on how the custom OAuth provider is configured
-function getLineUserId(session) {
-    if (!session || !session.user) return null;
-
-    console.log('=== DEBUG: Session Found ===');
-    console.log('Full user_metadata:', JSON.stringify(session.user.user_metadata, null, 2));
-    console.log('Full app_metadata:', JSON.stringify(session.user.app_metadata, null, 2));
     const userId =
         session.user.user_metadata?.provider_id ||
         session.user.user_metadata?.sub ||
@@ -35,7 +26,7 @@ function getLineUserId(session) {
         session.user.app_metadata?.sub ||
         null;
 
-    if (!lineId) {
+    if (!userId) {
         console.log('No LINE User ID found — using Supabase user ID for email user');
         return session.user.id;
     }
