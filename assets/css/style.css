@@ -1353,5 +1353,364 @@ body {
 
     .stat-card .stat-value {
         font-size: 2rem;
+/* ============================================
+   ADMIN PANEL LAYOUT
+   ============================================ */
+.admin-layout {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+}
+
+.admin-sidebar {
+    width: 280px;
+    background: var(--card-bg);
+    border-right: var(--sketch-border);
+    box-shadow: var(--sketch-shadow);
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+}
+
+.admin-sidebar.visible {
+    transform: translateX(0);
+}
+
+.sidebar-header {
+    padding: 20px;
+    border-bottom: 2px dashed #2d2d2d;
+    background: linear-gradient(135deg, var(--admin-color), var(--bg-gradient-end));
+    color: white;
+}
+
+.sidebar-header h2 {
+    font-size: 1.3rem;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.sidebar-header p {
+    margin: 5px 0 0 0;
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+.sidebar-logout {
+    background: rgba(255, 107, 107, 0.2);
+    border: 2px solid var(--danger-color);
+    color: var(--danger-color);
+    padding: 8px 15px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: bold;
+    font-size: 0.85rem;
+    width: 100%;
+    margin-top: 10px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.sidebar-logout:hover {
+    background: var(--danger-color);
+    color: white;
+    transform: translate(-2px, -2px);
+    box-shadow: 3px 3px 0px #2d2d2d;
+}
+
+.sidebar-nav {
+    padding: 15px 0;
+}
+
+.nav-category {
+    padding: 12px 20px 5px 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #888;
+    border-bottom: 1px solid #eee;
+    margin-top: 8px;
+}
+
+.nav-category:first-child {
+    margin-top: 0;
+}
+
+.admin-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 0.9rem;
+    border-left: 4px solid transparent;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.admin-nav-link:hover {
+    background: rgba(161, 140, 209, 0.1);
+    border-left-color: var(--admin-color);
+}
+
+.admin-nav-link.active {
+    background: rgba(161, 140, 209, 0.15);
+    border-left-color: var(--admin-color);
+    font-weight: 600;
+}
+
+.admin-nav-link svg {
+    flex-shrink: 0;
+}
+
+.admin-nav-link .nav-label {
+    flex-grow: 1;
+}
+
+.admin-nav-link .nav-badge {
+    font-size: 0.7rem;
+    background: var(--warning-color);
+    color: var(--text-color);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.admin-content {
+    flex-grow: 1;
+    margin-left: 0;
+    padding: 20px;
+    transition: margin-left 0.3s ease;
+    width: 100%;
+}
+
+.admin-content.sidebar-open {
+    margin-left: 280px;
+}
+
+.sidebar-toggle {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 101;
+    background: var(--admin-color);
+    color: white;
+    border: var(--sketch-border);
+    box-shadow: var(--sketch-shadow-sm);
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: inherit;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+.sidebar-toggle:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0px #2d2d2d;
+}
+
+/* Admin Page Sections */
+.admin-page {
+    display: none;
+}
+
+.admin-page.active {
+    display: block;
+}
+
+/* Coming Soon Placeholder */
+.coming-soon {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--card-bg);
+    border: var(--sketch-border);
+    border-radius: 15px;
+    box-shadow: var(--sketch-shadow);
+}
+
+.coming-soon svg {
+    margin-bottom: 20px;
+    opacity: 0.4;
+}
+
+.coming-soon h3 {
+    font-size: 1.5rem;
+    margin: 0 0 10px 0;
+    color: #555;
+}
+
+.coming-soon p {
+    color: #888;
+    font-size: 0.95rem;
+    margin-bottom: 5px;
+}
+
+/* User Management Cards */
+.user-card {
+    background: var(--card-bg-alt);
+    border: var(--sketch-border-thin);
+    border-radius: 10px;
+    box-shadow: var(--sketch-shadow-sm);
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    transition: all 0.2s ease;
+}
+
+.user-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0px #2d2d2d;
+}
+
+.pending-card {
+    border-left: 5px solid var(--warning-color);
+}
+
+.existing-card {
+    border-left: 5px solid var(--info-color);
+}
+
+.user-info {
+    flex-grow: 1;
+    min-width: 200px;
+}
+
+.user-id, .user-role, .user-date {
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+.mono {
+    font-family: 'Courier New', monospace;
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.85rem;
+}
+
+.role-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.role-administrator {
+    background: var(--admin-color);
+    color: white;
+}
+
+.role-seller {
+    background: var(--seller-color);
+    color: var(--text-color);
+}
+
+.role-viewer {
+    background: var(--viewer-color);
+    color: var(--text-color);
+}
+
+.role-assign-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-role-assign {
+    padding: 8px 15px;
+    font-size: 0.85rem;
+    border: var(--sketch-border-thin);
+    box-shadow: var(--sketch-shadow-sm);
+    cursor: pointer;
+    background: white;
+    font-family: inherit;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-role-assign.viewer {
+    background: var(--viewer-color);
+}
+
+.btn-role-assign.seller {
+    background: var(--seller-color);
+}
+
+.btn-role-assign.administrator {
+    background: var(--admin-color);
+    color: white;
+}
+
+.btn-role-assign:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0px #2d2d2d;
+}
+
+.role-change-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.role-select {
+    padding: 6px 10px;
+    border: var(--sketch-border-thin);
+    font-family: inherit;
+    font-size: 0.85rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: var(--sketch-shadow-sm);
+}
+
+/* Responsive Admin Layout */
+@media (max-width: 768px) {
+    .admin-sidebar {
+        width: 250px;
+    }
+
+    .admin-content.sidebar-open {
+        margin-left: 250px;
+    }
+
+    .admin-content {
+        padding: 60px 15px 20px 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-sidebar {
+        width: 100%;
+    }
+
+    .admin-content.sidebar-open {
+        margin-left: 100%;
+    }
+
+    .user-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .role-assign-buttons {
+        justify-content: center;
     }
 }
