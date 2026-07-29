@@ -11,81 +11,494 @@
     <!-- Background Pattern -->
     <div class="background-pattern"></div>
 
-    <div class="main-container">
-        <!-- Header -->
-        <div class="auth-card" style="max-width: 100%; margin-bottom: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-                <div>
-                    <h1 style="font-size: 1.8rem; margin: 0;">GIRL, the Butler</h1>
-                    <p style="margin: 5px 0 0 0; color: #555;">Administrator Panel</p>
-                </div>
-                <button id="logout-btn" class="btn" style="background: #ff6b6b; color: white; padding: 10px 20px; font-size: 0.9rem;">
-                    Logout
-                </button>
+    <!-- Sidebar Toggle Button (hidden until auth passes) -->
+    <button id="sidebar-toggle" class="sidebar-toggle hidden">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M3 12h18M3 6h18M3 18h18"/>
+        </svg>
+        Menu
+    </button>
+
+    <!-- ============================================
+         ADMIN LAYOUT: SIDEBAR + CONTENT
+         ============================================ -->
+    <div class="admin-layout">
+        <!-- Sidebar (hidden until auth passes) -->
+        <nav id="admin-sidebar" class="admin-sidebar">
+            <div class="sidebar-header">
+                <h2>GIRL, the Butler</h2>
+                <p>Administrator Panel</p>
+                <button id="sidebar-logout-btn" class="sidebar-logout">Logout</button>
             </div>
-        </div>
+
+            <div class="sidebar-nav">
+                <!-- ============================================
+                     CATEGORY 1: DATA ENTRY PAGES
+                     ============================================ -->
+                <div class="nav-category">Data Entry</div>
+
+                <!-- Page 1: User Management -->
+                <a class="admin-nav-link active" data-page="page-user-management" onclick="showPage('page-user-management')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    <span class="nav-label">User Management</span>
+                    <span class="nav-badge" id="pending-badge" style="display:none;">0</span>
+                </a>
+
+                <!-- Page 2: Inventory Prompts -->
+                <a class="admin-nav-link" data-page="page-inventory-prompts" onclick="showPage('page-inventory-prompts')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 7l-8-4-8 4 8 4 8-4z"/>
+                        <path d="M4 7v10l8 4 8-4V7"/>
+                        <path d="M12 11v10"/>
+                    </svg>
+                    <span class="nav-label">Inventory Prompts</span>
+                </a>
+
+                <!-- Page 3: Sell Prompts -->
+                <a class="admin-nav-link" data-page="page-sell-prompts" onclick="showPage('page-sell-prompts')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                    <span class="nav-label">Sell Prompts</span>
+                </a>
+
+                <!-- Page 4: Google Trends Upload -->
+                <a class="admin-nav-link" data-page="page-google-trends" onclick="showPage('page-google-trends')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 3v18h18"/>
+                        <path d="M18 17V9"/>
+                        <path d="M13 17V5"/>
+                        <path d="M8 17v-3"/>
+                    </svg>
+                    <span class="nav-label">Google Trends Upload</span>
+                </a>
+
+                <!-- Page 5: ROI Prompts -->
+                <a class="admin-nav-link" data-page="page-roi-prompts" onclick="showPage('page-roi-prompts')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="5" width="20" height="14" rx="2"/>
+                        <line x1="2" y1="10" x2="22" y2="10"/>
+                    </svg>
+                    <span class="nav-label">ROI Prompts (Friday)</span>
+                </a>
+
+                <!-- ============================================
+                     CATEGORY 2: TRACKING & METADATA
+                     ============================================ -->
+                <div class="nav-category">Tracking & Metadata</div>
+
+                <!-- Page 6: Search Strategies Log -->
+                <a class="admin-nav-link" data-page="page-search-strategies" onclick="showPage('page-search-strategies')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="M21 21l-4.35-4.35"/>
+                    </svg>
+                    <span class="nav-label">Search Strategies Log</span>
+                </a>
+
+                <!-- Page 7: Brand Metadata -->
+                <a class="admin-nav-link" data-page="page-brand-metadata" onclick="showPage('page-brand-metadata')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                    <span class="nav-label">Brand Metadata</span>
+                </a>
+
+                <!-- Page 8: LINE Alerts Log -->
+                <a class="admin-nav-link" data-page="page-line-alerts" onclick="showPage('page-line-alerts')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <span class="nav-label">LINE Alerts Log</span>
+                </a>
+
+                <!-- ============================================
+                     CATEGORY 3: DASHBOARD REPORTS
+                     ============================================ -->
+                <div class="nav-category">Dashboard Reports</div>
+
+                <!-- Page 9: Popularity Ranking -->
+                <a class="admin-nav-link" data-page="page-popularity-ranking" onclick="showPage('page-popularity-ranking')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="20" x2="12" y2="10"/>
+                        <line x1="18" y1="20" x2="18" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="16"/>
+                    </svg>
+                    <span class="nav-label">Popularity Ranking</span>
+                </a>
+
+                <!-- Page 10: Purchase Keywords -->
+                <a class="admin-nav-link" data-page="page-purchase-keywords" onclick="showPage('page-purchase-keywords')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <path d="M16 10a4 4 0 0 1-8 0"/>
+                    </svg>
+                    <span class="nav-label">Purchase Keywords</span>
+                </a>
+
+                <!-- Page 11: ROI Analysis -->
+                <a class="admin-nav-link" data-page="page-roi-analysis" onclick="showPage('page-roi-analysis')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="1" x2="12" y2="23"/>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                    <span class="nav-label">ROI Analysis</span>
+                </a>
+
+                <!-- Page 12: Brand Comparison -->
+                <a class="admin-nav-link" data-page="page-brand-comparison" onclick="showPage('page-brand-comparison')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 3a3 3 0 0 0-3 3v12"/>
+                        <path d="M6 3a3 3 0 0 1 3 3v12"/>
+                        <path d="M3 9h6"/>
+                        <path d="M15 9h6"/>
+                    </svg>
+                    <span class="nav-label">Brand Comparison</span>
+                </a>
+
+                <!-- Page 13: Emerging vs Declining -->
+                <a class="admin-nav-link" data-page="page-emerging-declining" onclick="showPage('page-emerging-declining')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                        <polyline points="17 6 23 6 23 12"/>
+                    </svg>
+                    <span class="nav-label">Emerging vs Declining</span>
+                </a>
+
+                <!-- Page 14: Keyword Discovery -->
+                <a class="admin-nav-link" data-page="page-keyword-discovery" onclick="showPage('page-keyword-discovery')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="M21 21l-4.35-4.35"/>
+                        <path d="M8 11h6"/>
+                        <path d="M11 8v6"/>
+                    </svg>
+                    <span class="nav-label">Keyword Discovery</span>
+                </a>
+            </div>
+        </nav>
 
         <!-- ============================================
-             SECTION 1: Pending Users
+             MAIN CONTENT AREA
              ============================================ -->
-        <div class="auth-card" style="max-width: 100%; margin-bottom: 20px;">
-            <h2 style="font-size: 1.5rem; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">
-                Pending Users
-            </h2>
-            <p style="color: #555; margin-bottom: 20px;">
-                Users who authenticated with LINE but haven't been assigned a role yet.
-            </p>
+        <div id="admin-content" class="admin-content">
 
-            <div id="pending-users-list">
-                <!-- Loading state -->
-                <div id="pending-loading" style="text-align: center; padding: 30px; color: #777;">
-                    <p>Loading pending users...</p>
+            <!-- ============================================
+                 PAGE 1: USER MANAGEMENT (Built Out)
+                 ============================================ -->
+            <div id="page-user-management" class="admin-page active">
+                <div class="page-header">
+                    <h1>User Management</h1>
+                    <p>Assign roles to authenticated users and manage existing user permissions.</p>
                 </div>
-                <!-- Pending user cards injected here by JS -->
-            </div>
 
-            <div id="pending-empty" class="hidden" style="text-align: center; padding: 30px; color: #777;">
-                <p>No pending users. Everyone has been assigned.</p>
-            </div>
-        </div>
+                <!-- Pending Users -->
+                <div class="card mb-20">
+                    <div class="card-header">
+                        <h2>Pending Users</h2>
+                    </div>
+                    <div class="card-body">
+                        <p class="font-sm" style="color: #555; margin-bottom: 20px;">
+                            Users who authenticated with LINE but haven't been assigned a role yet.
+                        </p>
 
-        <!-- ============================================
-             SECTION 2: Existing Users
-             ============================================ -->
-        <div class="auth-card" style="max-width: 100%; margin-bottom: 20px;">
-            <h2 style="font-size: 1.5rem; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">
-                Existing Users
-            </h2>
-            <p style="color: #555; margin-bottom: 20px;">
-                All registered users and their current roles.
-            </p>
+                        <div id="pending-users-list">
+                            <div id="pending-loading" class="loading">
+                                <p>Loading pending users...</p>
+                            </div>
+                        </div>
 
-            <div id="existing-users-list">
-                <div id="existing-loading" style="text-align: center; padding: 30px; color: #777;">
-                    <p>Loading users...</p>
+                        <div id="pending-empty" class="empty-state hidden">
+                            <h3>All Caught Up</h3>
+                            <p>No pending users. Everyone has been assigned.</p>
+                        </div>
+                    </div>
                 </div>
-                <!-- Existing user cards injected here by JS -->
+
+                <!-- Existing Users -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Existing Users</h2>
+                    </div>
+                    <div class="card-body">
+                        <p class="font-sm" style="color: #555; margin-bottom: 20px;">
+                            All registered users and their current roles.
+                        </p>
+
+                        <div id="existing-users-list">
+                            <div id="existing-loading" class="loading">
+                                <p>Loading users...</p>
+                            </div>
+                        </div>
+
+                        <div id="existing-empty" class="empty-state hidden">
+                            <h3>No Users Yet</h3>
+                            <p>No users registered yet.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div id="existing-empty" class="hidden" style="text-align: center; padding: 30px; color: #777;">
-                <p>No users registered yet.</p>
+            <!-- ============================================
+                 PAGE 2: INVENTORY PROMPTS (Placeholder)
+                 ============================================ -->
+            <div id="page-inventory-prompts" class="admin-page">
+                <div class="page-header">
+                    <h1>Inventory Prompts</h1>
+                    <p>Enter AnswerThePublic (ATPP) query responses with brand, keyword, category, and acquisition details.</p>
+                </div>
+                <div class="coming-soon">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 7l-8-4-8 4 8 4 8-4z"/>
+                        <path d="M4 7v10l8 4 8-4V7"/>
+                        <path d="M12 11v10"/>
+                    </svg>
+                    <h3>Coming Soon</h3>
+                    <p>This form will write to the <code>inventory_prompts</code> table.</p>
+                    <p>Fields: Brand, Keyword, Category, Search Volume Signal, Date Captured, Date Acquired, Vendor, Acquisition Location, Acquisition Price</p>
+                </div>
             </div>
-        </div>
 
-        <!-- ============================================
-             SECTION 3: Dashboard Preview (placeholder for now)
-             ============================================ -->
-        <div class="auth-card" style="max-width: 100%; margin-bottom: 20px;">
-            <h2 style="font-size: 1.5rem; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">
-                Dashboard Preview
-            </h2>
-            <p style="color: #555;">
-                Reports and charts will appear here (same as viewer.html).
-            </p>
-            <p style="color: #777; font-size: 0.9rem; margin-top: 10px;">
-                + Admin-only prompt forms (inventory, sells, Google Trends, ROI)
-            </p>
-            <!-- TODO: Build dashboard content in next phase -->
+            <!-- ============================================
+                 PAGE 3: SELL PROMPTS (Placeholder)
+                 ============================================ -->
+            <div id="page-sell-prompts" class="admin-page">
+                <div class="page-header">
+                    <h1>Sell Prompts</h1>
+                    <p>Record merchandise sales with seller details, product info, and pricing.</p>
+                </div>
+                <div class="coming-soon">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                    <h3>Coming Soon</h3>
+                    <p>This form will write to the <code>sell_prompts</code> table.</p>
+                    <p>Binary trigger: "Were there any sell updates?" → If yes: Seller Name, City, State, Date, Time, Brand, Product, Sales Channel, Price</p>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 PAGE 4: GOOGLE TRENDS UPLOAD (Placeholder)
+                 ============================================ -->
+            <div id="page-google-trends" class="admin-page">
+                <div class="page-header">
+                    <h1>Google Trends Upload</h1>
+                    <p>Upload Google Trends CSV files. CSV content is stored as JSONB alongside brand and date range.</p>
+                </div>
+                <div class="coming-soon">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 3v18h18"/>
+                        <path d="M18 17V9"/>
+                        <path d="M13 17V5"/>
+                        <path d="M8 17v-3"/>
+                    </svg>
+                    <h3>Coming Soon</h3>
+                    <p>This form will write to the <code>google_trends_uploads</code> table.</p>
+                    <p>Fields: Brand selection, Date range, CSV file upload</p>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 PAGE 5: ROI PROMPTS (Placeholder)
+                 ============================================ -->
+            <div id="page-roi-prompts" class="admin-page">
+                <div class="page-header">
+                    <h1>ROI Prompts</h1>
+                    <p>Friday cost entry for merchandise, shipping, admin travel, and admin services.</p>
+                </div>
+                <div class="coming-soon">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="5" width="20" height="14" rx="2"/>
+                        <line x1="2" y1="10" x2="22" y2="10"/>
+                    </svg>
+                    <h3>Coming Soon</h3>
+                    <p>This form will write to the <code>roi_prompts</code> table.</p>
+                    <p>Fields: Week Ending Date, Merchandise Cost, Shipping Cost, Admin Travel Cost, Admin Services Cost</p>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 PAGE 6: SEARCH STRATEGIES LOG (Placeholder)
+                 ============================================ -->
+            <div id="page-search-strategies" class="admin-page">
+                <div class="page-header">
+                    <h1>Search Strategies Log</h1>
+                    <p>Track what GIRL, the Butler suggested each day and whether the administrator acted on them.</p>
+                </div>
+                <div class="coming-soon">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="M21 21l-4.35-4.35"/>
+                    </svg>
+                    <h3>Coming Soon</h3>
+                    <p>This page will display data from the <code>search_strategies</code> table.</p>
+                    <p>Shows: Strategy date, brand, keyword, strategy type (ATPP/Google Trends), acted on status, action evidence</p>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 PAGE 7: BRAND METADATA (Placeholder)
+                 ============================================ -->
+            <div id="page-brand-metadata" class="admin-page">
+                <div class="page-header">
+                    <h1>Brand Metadata</h1>
+                    <p>Manage brand details separate from keyword data. Currently tracking Coach, Goyard, Marc Jacobs, and Alo.</p>
+                </div>
+                <div class="coming-soon">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                    <h3>Coming Soon</h3>
+                    <p>This page will display and edit data from the <code>brand_metadata</code> table.</p>
+                    <p>Fields: Brand key, full name, category, website, description, logo URL, active status</p>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 PAGE 8: LINE ALERTS LOG (Placeholder)
+                 ============================================ -->
+            <div id="page-line-alerts" class="admin-page">
+                <div class="page-header">
+                    <h1>LINE Alerts Log</h1>
+                    <p>Track which LINE alerts were sent successfully, failed, or are pending.</p>
+                </div>
+                <div class="coming-soon">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <h3>Coming Soon</h3>
+                    <p>This page will display data from the <code>line_alerts_log</code> table.</p>
+                    <p>Shows: Alert type, recipient, timestamp, delivery status, error messages, message content</p>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 PAGE 9: POPULARITY RANKING (Placeholder)
+                 ============================================ -->
+            <div id="page-popularity-ranking" class="admin-page">
+                <div class="page-header">
+                    <h1>Popularity Ranking</h1>
+                    <p>Google Trends volume over time for each brand.</p>
+                </div>
+                <div class="coming-soon">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="20" x2="12" y2="10"/>
+                        <line x1="18" y1="20" x2="18" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="16"/>
+                    </svg>
+                    <h3>Coming Soon</h3>
+                    <p>This report will pull from <code>google_trends_uploads</code> and <code>tfidf_results</code>.</p>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 PAGE 10: PURCHASE KEYWORDS (Placeholder)
+                 ============================================ -->
+            <div id="page-purchase-keywords" class="admin-page">
+                <div class="page-header">
+                    <h1>Purchase Keywords</h1>
+                    <p>Purchase intent keywords identified by the text analysis pipeline.</p>
+                </div>
+                <div class="coming-soon">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <path d="M16 10a4 4 0 0 1-8 0"/>
+                    </svg>
+                    <h3>Coming Soon</h3>
+                    <p>This report will pull from <code>tfidf_results</code> and <code>ner_results</code>.</p>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 PAGE 11: ROI ANALYSIS (Placeholder)
+                 ============================================ -->
+            <div id="page-roi-analysis" class="admin-page">
+                <div class="page-header">
+                    <h1>ROI Analysis</h1>
+                    <p>Friday financial reports comparing sells vs inventory vs costs. Answers whether The Strategies are working.</p>
+                </div>
+                <div class="coming-soon">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="1" x2="12" y2="23"/>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                    <h3>Coming Soon</h3>
+                    <p>This report will pull from <code>roi_prompts</code>, <code>sell_prompts</code>, and <code>inventory_prompts</code>.</p>
+                    <p>Answers: Did the seller act on GIRL's suggestions? Which strategies worked best? ROI of acted-on vs not-acted-on strategies.</p>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 PAGE 12: BRAND COMPARISON (Placeholder)
+                 ============================================ -->
+            <div id="page-brand-comparison" class="admin-page">
+                <div class="page-header">
+                    <h1>Brand Comparison</h1>
+                    <p>Brand vs Brand analysis using NER extraction and Jaccard Similarity for brand overlap.</p>
+                </div>
+                <div class="coming-soon">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 3a3 3 0 0 0-3 3v12"/>
+                        <path d="M6 3a3 3 0 0 1 3 3v12"/>
+                        <path d="M3 9h6"/>
+                        <path d="M15 9h6"/>
+                    </svg>
+                    <h3>Coming Soon</h3>
+                    <p>This report will pull from <code>ner_results</code> and <code>tfidf_results</code>.</p>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 PAGE 13: EMERGING VS DECLINING (Placeholder)
+                 ============================================ -->
+            <div id="page-emerging-declining" class="admin-page">
+                <div class="page-header">
+                    <h1>Emerging vs Declining</h1>
+                    <p>Monthly comparison of keywords appearing for the first time vs keywords disappearing over time.</p>
+                </div>
+                <div class="coming-soon">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                        <polyline points="17 6 23 6 23 12"/>
+                    </svg>
+                    <h3>Coming Soon</h3>
+                    <p>This report will pull from the <code>keyword_emergence</code> table.</p>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 PAGE 14: KEYWORD DISCOVERY (Placeholder)
+                 ============================================ -->
+            <div id="page-keyword-discovery" class="admin-page">
+                <div class="page-header">
+                    <h1>Keyword Discovery</h1>
+                    <p>AnswerThePublic keyword results with TF-IDF importance scores.</p>
+                </div>
+                <div class="coming-soon">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="M21 21l-4.35-4.35"/>
+                        <path d="M8 11h6"/>
+                        <path d="M11 8v6"/>
+                    </svg>
+                    <h3>Coming Soon</h3>
+                    <p>This report will pull from <code>inventory_prompts</code> and <code>tfidf_results</code>.</p>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -102,17 +515,62 @@
         // Administrator Page Logic
         // ============================================
         (async () => {
-            // ── Guard: only administrators can access ──
+            // Guard: only administrators can access
             const accessGranted = await checkRoleAccess('administrator');
             if (!accessGranted) return;
 
-            // ── Load data ──
-             loadPendingUsers();
-             loadExistingUsers();
+            // Show sidebar and toggle button
+            document.getElementById('admin-sidebar').classList.add('visible');
+            document.getElementById('sidebar-toggle').classList.remove('hidden');
+            document.getElementById('admin-content').classList.add('sidebar-open');
 
-            // ── Logout button ──
-            document.getElementById('logout-btn').addEventListener('click', logout);
+            // Load data for User Management page
+            loadPendingUsers();
+            loadExistingUsers();
+
+            // Logout button
+            document.getElementById('sidebar-logout-btn').addEventListener('click', logout);
         })();
+
+        // ============================================
+        // SIDEBAR TOGGLE (for mobile)
+        // ============================================
+        document.getElementById('sidebar-toggle').addEventListener('click', () => {
+            const sidebar = document.getElementById('admin-sidebar');
+            const content = document.getElementById('admin-content');
+            sidebar.classList.toggle('visible');
+            content.classList.toggle('sidebar-open');
+        });
+
+        // ============================================
+        // PAGE NAVIGATION
+        // ============================================
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.admin-page').forEach(page => {
+                page.classList.remove('active');
+            });
+
+            // Show selected page
+            document.getElementById(pageId).classList.add('active');
+
+            // Update nav links
+            document.querySelectorAll('.admin-nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+
+            // Mark clicked link as active
+            document.querySelector(`[data-page="${pageId}"]`).classList.add('active');
+
+            // Close sidebar on mobile after clicking a link
+            if (window.innerWidth <= 768) {
+                document.getElementById('admin-sidebar').classList.remove('visible');
+                document.getElementById('admin-content').classList.remove('sidebar-open');
+            }
+        }
+
+        // Make showPage globally accessible
+        window.showPage = showPage;
 
         // ============================================
         // SECTION 1: Pending Users
@@ -121,11 +579,11 @@
             const loadingEl = document.getElementById('pending-loading');
             const emptyEl = document.getElementById('pending-empty');
             const listEl = document.getElementById('pending-users-list');
+            const badgeEl = document.getElementById('pending-badge');
 
             try {
-                // Call the Edge Function
                 const { data: { session } } = await supabaseClient.auth.getSession();
-                
+
                 const response = await fetch(
                     'https://imvpwcuzzjgcpikwgwqd.supabase.co/functions/v1/pending-users',
                     {
@@ -147,38 +605,44 @@
 
                 if (!result.pendingUsers || result.pendingUsers.length === 0) {
                     emptyEl.classList.remove('hidden');
+                    if (badgeEl) badgeEl.style.display = 'none';
                     return;
                 }
 
-                // Render pending user cards
+                // Update badge count
+                if (badgeEl) {
+                    badgeEl.textContent = result.pendingUsers.length;
+                    badgeEl.style.display = 'inline-block';
+                }
+
                 listEl.innerHTML = result.pendingUsers.map(user => `
                     <div class="user-card pending-card">
                         <div class="user-info">
                             <div class="user-id">
-                                <strong>LINE User:</strong> 
+                                <strong>LINE User:</strong>
                                 <span class="mono">${user.id.substring(0, 12)}...</span>
                             </div>
                             <div class="user-date">
-                                <strong>Authenticated:</strong> 
+                                <strong>Authenticated:</strong>
                                 ${new Date(user.created_at).toLocaleDateString()}
                             </div>
                             ${user.last_sign_in_at ? `
-                                <div class="user-date">
-                                    <strong>Last Login:</strong> 
-                                    ${new Date(user.last_sign_in_at).toLocaleString()}
-                                </div>
+                            <div class="user-date">
+                                <strong>Last Login:</strong>
+                                ${new Date(user.last_sign_in_at).toLocaleString()}
+                            </div>
                             ` : ''}
                         </div>
                         <div class="role-assign-buttons">
-                            <button class="btn btn-role-assign viewer" 
+                            <button class="btn btn-role-assign viewer"
                                     onclick="assignRole('${user.id}', 'viewer')">
                                 Assign as Viewer
                             </button>
-                            <button class="btn btn-role-assign seller" 
+                            <button class="btn btn-role-assign seller"
                                     onclick="assignRole('${user.id}', 'seller')">
                                 Assign as Seller
                             </button>
-                            <button class="btn btn-role-assign administrator" 
+                            <button class="btn btn-role-assign administrator"
                                     onclick="assignRole('${user.id}', 'administrator')">
                                 Assign as Administrator
                             </button>
@@ -189,7 +653,7 @@
             } catch (err) {
                 loadingEl.classList.add('hidden');
                 listEl.innerHTML = `
-                    <div style="text-align: center; padding: 20px; color: #ff6b6b;">
+                    <div class="alert alert-danger">
                         <p>Error: ${err.message}</p>
                     </div>
                 `;
@@ -214,14 +678,14 @@
 
                 if (error) throw error;
 
-                alert(`User assigned as ${role}!`, 'success');
+                alert(`User assigned as ${role}!`);
 
                 // Reload both lists
                 await loadPendingUsers();
                 await loadExistingUsers();
 
             } catch (err) {
-                alert('Failed to assign role: ' + err.message, 'error');
+                alert('Failed to assign role: ' + err.message);
             }
         }
 
@@ -252,25 +716,25 @@
                     <div class="user-card existing-card">
                         <div class="user-info">
                             <div class="user-id">
-                                <strong>LINE User:</strong> 
+                                <strong>LINE User:</strong>
                                 <span class="mono">${user.line_user_id.substring(0, 12)}...</span>
                             </div>
                             <div class="user-role">
-                                <strong>Current Role:</strong> 
+                                <strong>Current Role:</strong>
                                 <span class="role-badge role-${user.role}">${user.role}</span>
                             </div>
                             <div class="user-date">
-                                <strong>Last Login:</strong> 
+                                <strong>Last Login:</strong>
                                 ${user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
                             </div>
                             <div class="user-date">
-                                <strong>Timezone:</strong> 
+                                <strong>Timezone:</strong>
                                 ${user.timezone || 'Not set'}
                             </div>
                         </div>
                         <div class="role-change-section">
                             <label for="role-select-${user.line_user_id}">Change Role:</label>
-                            <select id="role-select-${user.line_user_id}" 
+                            <select id="role-select-${user.line_user_id}"
                                     class="role-select"
                                     onchange="changeRole('${user.line_user_id}', this.value)">
                                 <option value="">-- Select --</option>
@@ -285,7 +749,7 @@
             } catch (err) {
                 loadingEl.classList.add('hidden');
                 listEl.innerHTML = `
-                    <div style="text-align: center; padding: 20px; color: #ff6b6b;">
+                    <div class="alert alert-danger">
                         <p>Error: ${err.message}</p>
                     </div>
                 `;
@@ -306,16 +770,16 @@
 
                 if (error) throw error;
 
-                alert(`Role changed to ${newRole}!`, 'success');
+                alert(`Role changed to ${newRole}!`);
                 await loadExistingUsers();
 
             } catch (err) {
-                alert('Failed to change role: ' + err.message, 'error');
-                await loadExistingUsers(); // Reset dropdown
+                alert('Failed to change role: ' + err.message);
+                await loadExistingUsers();
             }
         }
 
-        // Make functions globally accessible (for onclick handlers)
+        // Make functions globally accessible
         window.assignRole = assignRole;
         window.changeRole = changeRole;
     </script>
