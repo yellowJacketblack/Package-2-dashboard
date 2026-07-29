@@ -305,5 +305,11 @@ async function logout() {
 
 // ============================================
 // Initialize on page load
+// Only run handleAuthState on index.html (login page)
+// Protected pages handle their own auth via checkRoleAccess()
 // ============================================
-handleAuthState();
+const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+
+if (currentPage === 'index.html' || currentPage === '') {
+    handleAuthState();
+}
