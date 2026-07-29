@@ -248,26 +248,210 @@
                 </div>
             </div>
 
-            <!-- ============================================
-                 PAGE 2: INVENTORY PROMPTS (Placeholder)
-                 ============================================ -->
-            <div id="page-inventory-prompts" class="admin-page">
-                <div class="page-header">
-                    <h1>Inventory Prompts</h1>
-                    <p>Enter AnswerThePublic (ATPP) query responses with brand, keyword, category, and acquisition details.</p>
+           <!-- ============================================
+     PAGE 2: INVENTORY PROMPTS (ATPP Entry Form)
+     ============================================ -->
+<div id="page-inventory-prompts" class="admin-page">
+    <div class="page-header">
+        <h1>Inventory Prompts</h1>
+        <p>Enter AnswerThePublic (ATPP) query responses with brand, keyword, category, and acquisition details.</p>
+    </div>
+
+    <!-- Success Alert (hidden by default) -->
+    <div id="inventory-success" class="alert alert-success hidden">
+        <span class="alert-icon">✓</span>
+        <div>
+            <strong>Success!</strong> Inventory prompt saved to The Library.
+            <button onclick="document.getElementById('inventory-success').classList.add('hidden')" 
+                    style="float: right; border: none; background: none; cursor: pointer; font-size: 1.2rem;">×</button>
+        </div>
+    </div>
+
+    <!-- Error Alert (hidden by default) -->
+    <div id="inventory-error" class="alert alert-danger hidden">
+        <span class="alert-icon">⚠</span>
+        <div>
+            <strong>Error:</strong> <span id="inventory-error-message"></span>
+            <button onclick="document.getElementById('inventory-error').classList.add('hidden')"
+                    style="float: right; border: none; background: none; cursor: pointer; font-size: 1.2rem;">×</button>
+        </div>
+    </div>
+
+    <!-- ATPP Entry Form -->
+    <div class="card">
+        <div class="card-header">
+            <h2>ATPP Response Entry</h2>
+        </div>
+        <div class="card-body">
+            <form id="inventory-form" onsubmit="submitInventoryPrompt(event)">
+                
+                <!-- Section 1: Keyword Discovery -->
+                <div class="form-section">
+                    <div class="form-section-title">Keyword Discovery (from AnswerThePublic)</div>
+                    
+                    <div class="form-row">
+                        <!-- Field 1: Brand -->
+                        <div class="form-group">
+                            <label class="form-label" for="inv-brand">
+                                Brand <span class="required">*</span>
+                            </label>
+                            <select id="inv-brand" class="form-select" required>
+                                <option value="">-- Select Brand --</option>
+                                <option value="Coach">Coach</option>
+                                <option value="Goyard">Goyard</option>
+                                <option value="Marc Jacobs">Marc Jacobs</option>
+                                <option value="Alo">Alo</option>
+                            </select>
+                        </div>
+
+                        <!-- Field 2: Keyword -->
+                        <div class="form-group">
+                            <label class="form-label" for="inv-keyword">
+                                Keyword <span class="required">*</span>
+                            </label>
+                            <input type="text" 
+                                   id="inv-keyword" 
+                                   class="form-input" 
+                                   placeholder="e.g., coach brooklyn bag"
+                                   required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <!-- Field 3: Category -->
+                        <div class="form-group">
+                            <label class="form-label" for="inv-category">
+                                Category <span class="required">*</span>
+                            </label>
+                            <select id="inv-category" class="form-select" required>
+                                <option value="">-- Select Category --</option>
+                                <option value="bags">Bags</option>
+                                <option value="wallets">Wallets</option>
+                                <option value="backpacks">Backpacks</option>
+                                <option value="accessories">Accessories</option>
+                                <option value="shoes">Shoes</option>
+                                <option value="clothing">Clothing</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <!-- Field 4: Search Volume Signal -->
+                        <div class="form-group">
+                            <label class="form-label" for="inv-signal">
+                                Search Volume Signal <span class="required">*</span>
+                            </label>
+                            <select id="inv-signal" class="form-select" required>
+                                <option value="">-- Select Signal --</option>
+                                <option value="high">High (100K+ searches)</option>
+                                <option value="medium">Medium (10K-100K searches)</option>
+                                <option value="low">Low (1K-10K searches)</option>
+                                <option value="very-low">Very Low (< 1K searches)</option>
+                                <option value="rising">Rising (trending up)</option>
+                                <option value="declining">Declining (trending down)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Field 5: Date Captured -->
+                    <div class="form-group">
+                        <label class="form-label" for="inv-date-captured">
+                            Date Captured <span class="required">*</span>
+                        </label>
+                        <input type="date" 
+                               id="inv-date-captured" 
+                               class="form-input" 
+                               required>
+                    </div>
                 </div>
-                <div class="coming-soon">
-                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20 7l-8-4-8 4 8 4 8-4z"/>
-                        <path d="M4 7v10l8 4 8-4V7"/>
-                        <path d="M12 11v10"/>
-                    </svg>
-                    <h3>Coming Soon</h3>
-                    <p>This form will write to the <code>inventory_prompts</code> table.</p>
-                    <p>Fields: Brand, Keyword, Category, Search Volume Signal, Date Captured, Date Acquired, Vendor, Acquisition Location, Acquisition Price</p>
+
+                <!-- Section 2: Inventory Acquisition Details -->
+                <div class="form-section">
+                    <div class="form-section-title">Inventory Acquisition Details (optional but recommended for ROI)</div>
+                    
+                    <div class="form-row">
+                        <!-- Field 6: Date Acquired -->
+                        <div class="form-group">
+                            <label class="form-label" for="inv-date-acquired">
+                                Date Acquired
+                            </label>
+                            <input type="date" 
+                                   id="inv-date-acquired" 
+                                   class="form-input">
+                        </div>
+
+                        <!-- Field 7: Vendor -->
+                        <div class="form-group">
+                            <label class="form-label" for="inv-vendor">
+                                Vendor
+                            </label>
+                            <input type="text" 
+                                   id="inv-vendor" 
+                                   class="form-input" 
+                                   placeholder="e.g., eBay seller, thrift store, outlet">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <!-- Field 8: Acquisition Location -->
+                        <div class="form-group">
+                            <label class="form-label" for="inv-location">
+                                Acquisition Location
+                            </label>
+                            <input type="text" 
+                                   id="inv-location" 
+                                   class="form-input" 
+                                   placeholder="e.g., Houston, TX or online">
+                        </div>
+
+                        <!-- Field 9: Acquisition Price -->
+                        <div class="form-group">
+                            <label class="form-label" for="inv-price">
+                                Acquisition Price (USD)
+                            </label>
+                            <input type="number" 
+                                   id="inv-price" 
+                                   class="form-input" 
+                                   step="0.01" 
+                                   min="0" 
+                                   placeholder="e.g., 45.00">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="card-footer">
+                    <button type="button" 
+                            class="btn btn-secondary" 
+                            onclick="resetInventoryForm()">
+                        Clear Form
+                    </button>
+                    <button type="submit" 
+                            class="btn btn-submit" 
+                            id="inventory-submit-btn">
+                        Save to The Library
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Recent Entries (last 5) -->
+    <div class="card mt-20">
+        <div class="card-header">
+            <h2>Recent Entries</h2>
+            <button class="btn btn-sm btn-secondary" onclick="loadRecentInventory()">
+                Refresh
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="recent-inventory-list">
+                <div class="loading">
+                    <p>Click "Refresh" to load recent entries...</p>
                 </div>
             </div>
-
+        </div>
+    </div>
+</div>
             <!-- ============================================
                  PAGE 3: SELL PROMPTS (Placeholder)
                  ============================================ -->
@@ -528,6 +712,9 @@
             loadPendingUsers();
             loadExistingUsers();
 
+            // Set default date for inventory form
+            setDefaultInventoryDate();
+
             // Logout button
             document.getElementById('sidebar-logout-btn').addEventListener('click', logout);
         })();
@@ -696,7 +883,7 @@
             const loadingEl = document.getElementById('existing-loading');
             const emptyEl = document.getElementById('existing-empty');
             const listEl = document.getElementById('existing-users-list');
-
+            
             try {
                 const { data: users, error } = await supabaseClient
                     .from('user_profiles')
@@ -778,6 +965,143 @@
                 await loadExistingUsers();
             }
         }
+        // ============================================
+// SECTION 3: Inventory Prompts (ATPP Entry)
+// ============================================
+
+// Set today's date as default for Date Captured
+function setDefaultInventoryDate() {
+    const today = new Date().toISOString().split('T')[0];
+    const dateField = document.getElementById('inv-date-captured');
+    if (dateField && !dateField.value) {
+        dateField.value = today;
+    }
+}
+
+// Submit inventory prompt to Supabase
+async function submitInventoryPrompt(event) {
+    event.preventDefault();
+    
+    const submitBtn = document.getElementById('inventory-submit-btn');
+    const successAlert = document.getElementById('inventory-success');
+    const errorAlert = document.getElementById('inventory-error');
+    const errorMsg = document.getElementById('inventory-error-message');
+    
+    // Hide previous alerts
+    successAlert.classList.add('hidden');
+    errorAlert.classList.add('hidden');
+    
+    // Disable button during submission
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+    
+    // Gather form data
+    const data = {
+        brand: document.getElementById('inv-brand').value,
+        keyword: document.getElementById('inv-keyword').value.trim(),
+        category: document.getElementById('inv-category').value,
+        search_volume_signal: document.getElementById('inv-signal').value,
+        date_captured: document.getElementById('inv-date-captured').value,
+        date_acquired: document.getElementById('inv-date-acquired').value || null,
+        vendor: document.getElementById('inv-vendor').value.trim() || null,
+        acquisition_location: document.getElementById('inv-location').value.trim() || null,
+        acquisition_price: document.getElementById('inv-price').value 
+            ? parseFloat(document.getElementById('inv-price').value) 
+            : null,
+    };
+    
+    try {
+        const { error } = await supabaseClient
+            .from('inventory_prompts')
+            .insert([data]);
+        
+        if (error) throw error;
+        
+        // Show success
+        successAlert.classList.remove('hidden');
+        
+        // Reset form
+        resetInventoryForm();
+        
+        // Reload recent entries
+        loadRecentInventory();
+        
+    } catch (err) {
+        errorMsg.textContent = err.message;
+        errorAlert.classList.remove('hidden');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save to The Library';
+    }
+}
+
+// Reset form
+function resetInventoryForm() {
+    document.getElementById('inventory-form').reset();
+    setDefaultInventoryDate();
+    
+    // Hide alerts
+    document.getElementById('inventory-success').classList.add('hidden');
+    document.getElementById('inventory-error').classList.add('hidden');
+}
+
+// Load recent inventory entries (last 5)
+async function loadRecentInventory() {
+    const listEl = document.getElementById('recent-inventory-list');
+    
+    if (listEl) {
+        listEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Loading recent entries...</p></div>';
+    }
+    
+    try {
+        const { data, error } = await supabaseClient
+            .from('inventory_prompts')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(5);
+        
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+            listEl.innerHTML = `
+                <div class="empty-state">
+                    <h3>No Entries Yet</h3>
+                    <p>Inventory prompts will appear here after you submit the form above.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        listEl.innerHTML = data.map(item => `
+            <div class="list-item">
+                <div class="list-item-content">
+                    <div class="list-item-title">
+                        <span class="badge badge-admin">${item.brand}</span>
+                        ${item.keyword}
+                    </div>
+                    <div class="list-item-subtitle">
+                        Category: ${item.category} | Signal: ${item.search_volume_signal} | Captured: ${item.date_captured}
+                        ${item.acquisition_price ? ` | Price: $${item.acquisition_price}` : ''}
+                        ${item.vendor ? ` | Vendor: ${item.vendor}` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (err) {
+        listEl.innerHTML = `
+            <div class="alert alert-danger">
+                <p>Error loading entries: ${err.message}</p>
+            </div>
+        `;
+    }
+}
+
+// Make functions globally accessible
+window.submitInventoryPrompt = submitInventoryPrompt;
+window.resetInventoryForm = resetInventoryForm;
+window.loadRecentInventory = loadRecentInventory;
+window.setDefaultInventoryDate = setDefaultInventoryDate;
 
         // Make functions globally accessible
         window.assignRole = assignRole;
