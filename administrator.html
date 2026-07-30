@@ -870,239 +870,6 @@ PAGE 3: SELL PROMPTS (Sell Entry Form)
         </div>
     </div>
 </div>
-            // ============================================
-// SECTION 5: Google Trends Upload
-// ============================================
-
-// Preview CSV file when selected
-function previewCsvFile() {
-    const fileInput = document.getElementById('gt-file');
-    const previewContainer = document.getElementById('gt-preview-container');
-    const previewEl = document.getElementById('gt-preview');
-
-    const file = fileInput.files[0];
-    if (!file) {
-        previewContainer.classList.remove('is-visible');
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const text = e.target.result;
-        const lines = text.split('\n').filter(line => line.trim());
-
-        if (lines.length === 0) {
-            previewEl.innerHTML = '<p>CSV file appears to be empty.</p>';
-            previewContainer.classList.add('is-visible');
-            return;
-        }
-
-        // Build preview table (first 5 rows)
-        const previewRows = lines.slice(0, 6);
-        let html = '<table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">';
-
-        previewRows.forEach((line, idx) => {
-            const cells = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-            const isHeader = idx === 0;
-            html += '<tr' + (isHeader ? ' style="background: #e9ecef; font-weight: bold;"' : '') + '>';
-            cells.forEach(cell => {
-                html += isHeader 
-                    ? '<th style="padding: 6px; border: 1px solid #dee2e6; text-align: left;">' + cell + '</th>'
-                    : '<td style="padding: 6px; border: 1px solid #dee2e6;">' + cell + '</td>';
-            });
-            html += '</tr>';
-        });
-
-        html += '</table>';
-        html += '<p class="font-sm" style="margin-top: 8px; color: #555;">Total rows in file: ' + lines.length + '</p>';
-
-        previewEl.innerHTML = html;
-        previewContainer.classList.add('is-visible');
-    };
-
-    reader.readAsText(file);
-}
-
-// Parse CSV text to JSON array
-function parseCsvToJson(csvText) {
-    const lines = csvText.split('\n').filter(line => line.trim());
-    
-    if (lines.length === 0) return [];
-
-    // Google Trends CSVs often have metadata lines at the top
-    // Find the header row (first line containing "date" or "query" or similar)
-    let headerIdx = 0;
-    for (let i = 0; i < Math.min(5, lines.length); i++) {
-        const lower = lines[i].toLowerCase();
-        if (lower.includes('date') || lower.includes('query') || lower.includes('category') || lower.includes('rank')) {
-            headerIdx = i;
-            break;
-        }
-    }
-
-    const headers = lines[headerIdx].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-    const data = [];
-
-    for (let i = headerIdx + 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-        if (values.length === headers.length || (values.length === 1 && values[0] === '')) {
-            const row = {};
-            headers.forEach((header, idx) => {
-                row[header] = values[idx] || null;
-            });
-            data.push(row);
-        }
-    }
-
-    return {
-        headers: headers,
-        rows: data,
-        total_rows: data.length,
-        raw_line_count: lines.length
-    };
-}
-
-// Submit Google Trends upload
-async function submitGoogleTrendsUpload(event) {
-    event.preventDefault();
-
-    const submitBtn = document.getElementById('gt-submit-btn');
-    const successAlert = document.getElementById('gt-success');
-    const errorAlert = document.getElementById('gt-error');
-    const errorMsg = document.getElementById('gt-error-message');
-
-    successAlert.classList.add('hidden');
-    errorAlert.classList.add('hidden');
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Saving...';
-
-    try {
-        const fileInput = document.getElementById('gt-file');
-        const file = fileInput.files[0];
-
-        if (!file) {
-            throw new Error('Please select a CSV file.');
-        }
-
-        // Read file
-        const csvText = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = e => resolve(e.target.result);
-            reader.onerror = () => reject(new Error('Failed to read file.'));
-            reader.readAsText(file);
-        });
-
-        // Parse CSV to JSON
-        const parsedData = parseCsvToJson(csvText);
-
-        if (parsedData.rows.length === 0) {
-            throw new Error('No data rows found in CSV. Check the file format.');
-        }
-
-        // Build date range string
-        const dateStart = document.getElementById('gt-date-start').value;
-        const dateEnd = document.getElementById('gt-date-end').value;
-        const dateRange = dateStart + ' to ' + dateEnd;
-
-        // Prepare data for Supabase
-        const data = {
-            brand: document.getElementById('gt-brand').value.trim(),
-            date_range: dateRange,
-            csv_content: {
-                csv_type: document.getElementById('gt-csv-type').value,
-                file_name: file.name,
-                headers: parsedData.headers,
-                row_count: parsedData.total_rows,
-                data: parsedData.rows
-            }
-        };
-
-        const { error } = await supabaseClient
-            .from('google_trends_uploads')
-            .insert([data]);
-
-        if (error) throw error;
-
-        successAlert.classList.remove('hidden');
-        resetGoogleTrendsForm();
-        loadRecentGoogleTrends();
-
-    } catch (err) {
-        errorMsg.textContent = err.message;
-        errorAlert.classList.remove('hidden');
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Save to The Library';
-    }
-}
-
-// Reset form
-function resetGoogleTrendsForm() {
-    document.getElementById('gt-form').reset();
-    document.getElementById('gt-preview-container').classList.remove('is-visible');
-    document.getElementById('gt-preview').innerHTML = '';
-    document.getElementById('gt-success').classList.add('hidden');
-    document.getElementById('gt-error').classList.add('hidden');
-}
-
-// Load recent uploads
-async function loadRecentGoogleTrends() {
-    const listEl = document.getElementById('recent-gt-list');
-
-    if (listEl) {
-        listEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Loading recent uploads...</p></div>';
-    }
-
-    try {
-        const { data, error } = await supabaseClient
-            .from('google_trends_uploads')
-            .select('*')
-            .order('uploaded_at', { ascending: false })
-            .limit(5);
-
-        if (error) throw error;
-
-        if (!data || data.length === 0) {
-            listEl.innerHTML = `
-                <div class="empty-state">
-                    <h3>No Uploads Yet</h3>
-                    <p>Google Trends uploads will appear here after you submit the form above.</p>
-                </div>
-            `;
-            return;
-        }
-
-        listEl.innerHTML = data.map(item => `
-            <div class="list-item">
-                <div class="list-item-content">
-                    <div class="list-item-title">
-                        <span class="badge badge-admin">${item.brand}</span>
-                        ${item.csv_content && item.csv_content.csv_type ? item.csv_content.csv_type.replace(/_/g, ' ') : 'CSV'}
-                    </div>
-                    <div class="list-item-subtitle">
-                        Range: ${item.date_range} | Rows: ${item.csv_content && item.csv_content.row_count ? item.csv_content.row_count : 'N/A'}
-                        ${item.csv_content && item.csv_content.file_name ? ' | File: ' + item.csv_content.file_name : ''}
-                        | Uploaded: ${new Date(item.uploaded_at).toLocaleDateString()}
-                    </div>
-                </div>
-            </div>
-        `).join('');
-
-    } catch (err) {
-        listEl.innerHTML = `
-            <div class="alert alert-danger">
-                <p>Error loading uploads: ${err.message}</p>
-            </div>
-        `;
-    }
-}
-
-// Make functions globally accessible
-window.previewCsvFile = previewCsvFile;
-window.submitGoogleTrendsUpload = submitGoogleTrendsUpload;
-window.resetGoogleTrendsForm = resetGoogleTrendsForm;
-window.loadRecentGoogleTrends = loadRecentGoogleTrends;
 
             <!-- ============================================
                  PAGE 5: ROI PROMPTS (Placeholder)
@@ -1889,13 +1656,245 @@ async function loadRecentSells() {
         `;
     }
 }
-
-// Make functions globally accessible
+    // Make functions globally accessible
 window.toggleSellForm = toggleSellForm;
 window.toggleSocialMediaField = toggleSocialMediaField;
 window.submitSellPrompt = submitSellPrompt;
 window.resetSellForm = resetSellForm;
 window.loadRecentSells = loadRecentSells;
+            // ============================================
+// SECTION 5: Google Trends Upload
+// ============================================
+
+// Preview CSV file when selected
+function previewCsvFile() {
+    const fileInput = document.getElementById('gt-file');
+    const previewContainer = document.getElementById('gt-preview-container');
+    const previewEl = document.getElementById('gt-preview');
+
+    const file = fileInput.files[0];
+    if (!file) {
+        previewContainer.classList.remove('is-visible');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        const lines = text.split('\n').filter(line => line.trim());
+
+        if (lines.length === 0) {
+            previewEl.innerHTML = '<p>CSV file appears to be empty.</p>';
+            previewContainer.classList.add('is-visible');
+            return;
+        }
+
+        // Build preview table (first 5 rows)
+        const previewRows = lines.slice(0, 6);
+        let html = '<table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">';
+
+        previewRows.forEach((line, idx) => {
+            const cells = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+            const isHeader = idx === 0;
+            html += '<tr' + (isHeader ? ' style="background: #e9ecef; font-weight: bold;"' : '') + '>';
+            cells.forEach(cell => {
+                html += isHeader 
+                    ? '<th style="padding: 6px; border: 1px solid #dee2e6; text-align: left;">' + cell + '</th>'
+                    : '<td style="padding: 6px; border: 1px solid #dee2e6;">' + cell + '</td>';
+            });
+            html += '</tr>';
+        });
+
+        html += '</table>';
+        html += '<p class="font-sm" style="margin-top: 8px; color: #555;">Total rows in file: ' + lines.length + '</p>';
+
+        previewEl.innerHTML = html;
+        previewContainer.classList.add('is-visible');
+    };
+
+    reader.readAsText(file);
+}
+
+// Parse CSV text to JSON array
+function parseCsvToJson(csvText) {
+    const lines = csvText.split('\n').filter(line => line.trim());
+    
+    if (lines.length === 0) return [];
+
+    // Google Trends CSVs often have metadata lines at the top
+    // Find the header row (first line containing "date" or "query" or similar)
+    let headerIdx = 0;
+    for (let i = 0; i < Math.min(5, lines.length); i++) {
+        const lower = lines[i].toLowerCase();
+        if (lower.includes('date') || lower.includes('query') || lower.includes('category') || lower.includes('rank')) {
+            headerIdx = i;
+            break;
+        }
+    }
+
+    const headers = lines[headerIdx].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    const data = [];
+
+    for (let i = headerIdx + 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+        if (values.length === headers.length || (values.length === 1 && values[0] === '')) {
+            const row = {};
+            headers.forEach((header, idx) => {
+                row[header] = values[idx] || null;
+            });
+            data.push(row);
+        }
+    }
+
+    return {
+        headers: headers,
+        rows: data,
+        total_rows: data.length,
+        raw_line_count: lines.length
+    };
+}
+
+// Submit Google Trends upload
+async function submitGoogleTrendsUpload(event) {
+    event.preventDefault();
+
+    const submitBtn = document.getElementById('gt-submit-btn');
+    const successAlert = document.getElementById('gt-success');
+    const errorAlert = document.getElementById('gt-error');
+    const errorMsg = document.getElementById('gt-error-message');
+
+    successAlert.classList.add('hidden');
+    errorAlert.classList.add('hidden');
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+
+    try {
+        const fileInput = document.getElementById('gt-file');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            throw new Error('Please select a CSV file.');
+        }
+
+        // Read file
+        const csvText = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.onerror = () => reject(new Error('Failed to read file.'));
+            reader.readAsText(file);
+        });
+
+        // Parse CSV to JSON
+        const parsedData = parseCsvToJson(csvText);
+
+        if (parsedData.rows.length === 0) {
+            throw new Error('No data rows found in CSV. Check the file format.');
+        }
+
+        // Build date range string
+        const dateStart = document.getElementById('gt-date-start').value;
+        const dateEnd = document.getElementById('gt-date-end').value;
+        const dateRange = dateStart + ' to ' + dateEnd;
+
+        // Prepare data for Supabase
+        const data = {
+            brand: document.getElementById('gt-brand').value.trim(),
+            date_range: dateRange,
+            csv_content: {
+                csv_type: document.getElementById('gt-csv-type').value,
+                file_name: file.name,
+                headers: parsedData.headers,
+                row_count: parsedData.total_rows,
+                data: parsedData.rows
+            }
+        };
+
+        const { error } = await supabaseClient
+            .from('google_trends_uploads')
+            .insert([data]);
+
+        if (error) throw error;
+
+        successAlert.classList.remove('hidden');
+        resetGoogleTrendsForm();
+        loadRecentGoogleTrends();
+
+    } catch (err) {
+        errorMsg.textContent = err.message;
+        errorAlert.classList.remove('hidden');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save to The Library';
+    }
+}
+
+// Reset form
+function resetGoogleTrendsForm() {
+    document.getElementById('gt-form').reset();
+    document.getElementById('gt-preview-container').classList.remove('is-visible');
+    document.getElementById('gt-preview').innerHTML = '';
+    document.getElementById('gt-success').classList.add('hidden');
+    document.getElementById('gt-error').classList.add('hidden');
+}
+
+// Load recent uploads
+async function loadRecentGoogleTrends() {
+    const listEl = document.getElementById('recent-gt-list');
+
+    if (listEl) {
+        listEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Loading recent uploads...</p></div>';
+    }
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('google_trends_uploads')
+            .select('*')
+            .order('uploaded_at', { ascending: false })
+            .limit(5);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            listEl.innerHTML = `
+                <div class="empty-state">
+                    <h3>No Uploads Yet</h3>
+                    <p>Google Trends uploads will appear here after you submit the form above.</p>
+                </div>
+            `;
+            return;
+        }
+
+        listEl.innerHTML = data.map(item => `
+            <div class="list-item">
+                <div class="list-item-content">
+                    <div class="list-item-title">
+                        <span class="badge badge-admin">${item.brand}</span>
+                        ${item.csv_content && item.csv_content.csv_type ? item.csv_content.csv_type.replace(/_/g, ' ') : 'CSV'}
+                    </div>
+                    <div class="list-item-subtitle">
+                        Range: ${item.date_range} | Rows: ${item.csv_content && item.csv_content.row_count ? item.csv_content.row_count : 'N/A'}
+                        ${item.csv_content && item.csv_content.file_name ? ' | File: ' + item.csv_content.file_name : ''}
+                        | Uploaded: ${new Date(item.uploaded_at).toLocaleDateString()}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+    } catch (err) {
+        listEl.innerHTML = `
+            <div class="alert alert-danger">
+                <p>Error loading uploads: ${err.message}</p>
+            </div>
+        `;
+    }
+}
+
+// Make functions globally accessible
+window.previewCsvFile = previewCsvFile;
+window.submitGoogleTrendsUpload = submitGoogleTrendsUpload;
+window.resetGoogleTrendsForm = resetGoogleTrendsForm;
+window.loadRecentGoogleTrends = loadRecentGoogleTrends;
 
         // Make functions globally accessible
         window.assignRole = assignRole;
