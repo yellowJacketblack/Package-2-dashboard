@@ -1344,6 +1344,189 @@ window.resetInventoryForm = resetInventoryForm;
 window.loadRecentInventory = loadRecentInventory;
 window.setDefaultInventoryDate = setDefaultInventoryDate;
 
+// ============================================
+// SECTION 4: Sell Prompts  ← INSERT HERE
+// ============================================
+
+// Binary toggle: show/hide sell details form
+function toggleSellForm(answer) {
+    const yesBtn = document.getElementById('sell-toggle-yes');
+    const noBtn = document.getElementById('sell-toggle-no');
+    const detailsSection = document.getElementById('sell-details-section');
+    const submitBtn = document.getElementById('sell-submit-btn');
+
+    if (answer === 'yes') {
+        yesBtn.classList.add('selected-yes');
+        yesBtn.classList.remove('selected-no');
+        noBtn.classList.remove('selected-yes', 'selected-no');
+        detailsSection.classList.add('is-visible');
+        submitBtn.disabled = false;
+    } else {
+        noBtn.classList.add('selected-no');
+        noBtn.classList.remove('selected-yes');
+        yesBtn.classList.remove('selected-yes', 'selected-no');
+        detailsSection.classList.remove('is-visible');
+        submitBtn.disabled = true;
+    }
+}
+
+// Show/hide social media site field based on sales channel selection
+function toggleSocialMediaField() {
+    const channel = document.getElementById('sell-channel').value;
+    const socialMediaGroup = document.getElementById('social-media-group');
+    const socialMediaInput = document.getElementById('sell-social-media');
+
+    if (channel === 'Social Media') {
+        socialMediaGroup.classList.add('is-visible');
+        socialMediaInput.required = true;
+    } else {
+        socialMediaGroup.classList.remove('is-visible');
+        socialMediaInput.required = false;
+        socialMediaInput.value = '';
+    }
+}
+
+// Submit sell prompt to Supabase
+async function submitSellPrompt(event) {
+    event.preventDefault();
+
+    const submitBtn = document.getElementById('sell-submit-btn');
+    const successAlert = document.getElementById('sell-success');
+    const errorAlert = document.getElementById('sell-error');
+    const errorMsg = document.getElementById('sell-error-message');
+
+    // Hide previous alerts
+    successAlert.classList.add('hidden');
+    errorAlert.classList.add('hidden');
+
+    // Disable button during submission
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+
+    // Convert date selection to actual date
+    const dateChoice = document.getElementById('sell-date').value;
+    let sellDate;
+    if (dateChoice === 'today') {
+        sellDate = new Date().toISOString().split('T')[0];
+    } else if (dateChoice === 'yesterday') {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        sellDate = yesterday.toISOString().split('T')[0];
+    }
+
+    // Gather form data
+    const data = {
+        seller_name: document.getElementById('sell-seller-name').value.trim(),
+        city: document.getElementById('sell-city').value.trim(),
+        state: document.getElementById('sell-state').value.trim(),
+        sell_date: sellDate,
+        sell_time: document.getElementById('sell-time').value,
+        brand: document.getElementById('sell-brand').value.trim(),
+        product: document.getElementById('sell-product').value,
+        sales_channel: document.getElementById('sell-channel').value,
+        social_media_site: document.getElementById('sell-social-media').value.trim() || null,
+        price: parseFloat(document.getElementById('sell-price').value),
+    };
+
+    try {
+        const { error } = await supabaseClient
+            .from('sell_prompts')
+            .insert([data]);
+
+        if (error) throw error;
+
+        // Show success
+        successAlert.classList.remove('hidden');
+
+        // Reset form
+        resetSellForm();
+
+        // Reload recent entries
+        loadRecentSells();
+
+    } catch (err) {
+        errorMsg.textContent = err.message;
+        errorAlert.classList.remove('hidden');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save to The Library';
+    }
+}
+
+// Reset sell form
+function resetSellForm() {
+    document.getElementById('sell-form').reset();
+
+    // Reset binary toggle to "No" (default)
+    toggleSellForm('no');
+
+    // Hide social media field
+    toggleSocialMediaField();
+
+    // Hide alerts
+    document.getElementById('sell-success').classList.add('hidden');
+    document.getElementById('sell-error').classList.add('hidden');
+}
+
+// Load recent sell entries (last 5)
+async function loadRecentSells() {
+    const listEl = document.getElementById('recent-sells-list');
+
+    if (listEl) {
+        listEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Loading recent entries...</p></div>';
+    }
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('sell_prompts')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(5);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            listEl.innerHTML = `
+                <div class="empty-state">
+                    <h3>No Entries Yet</h3>
+                    <p>Sell prompts will appear here after you submit the form above.</p>
+                </div>
+            `;
+            return;
+        }
+
+        listEl.innerHTML = data.map(item => `
+            <div class="list-item">
+                <div class="list-item-content">
+                    <div class="list-item-title">
+                        <span class="badge badge-seller">${item.brand}</span>
+                        ${item.product} - ${item.price}
+                    </div>
+                    <div class="list-item-subtitle">
+                        Seller: ${item.seller_name} | ${item.city}, ${item.state} | ${item.sell_date} at ${item.sell_time}
+                        ${item.sales_channel ? ` | Channel: ${item.sales_channel}` : ''}
+                        ${item.social_media_site ? ` (${item.social_media_site})` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+    } catch (err) {
+        listEl.innerHTML = `
+            <div class="alert alert-danger">
+                <p>Error loading entries: ${err.message}</p>
+            </div>
+        `;
+    }
+}
+
+// Make functions globally accessible
+window.toggleSellForm = toggleSellForm;
+window.toggleSocialMediaField = toggleSocialMediaField;
+window.submitSellPrompt = submitSellPrompt;
+window.resetSellForm = resetSellForm;
+window.loadRecentSells = loadRecentSells;
+
         // Make functions globally accessible
         window.assignRole = assignRole;
         window.changeRole = changeRole;
