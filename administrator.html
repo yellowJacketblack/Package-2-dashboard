@@ -451,24 +451,267 @@
     </div>
 </div>
             <!-- ============================================
-                 PAGE 3: SELL PROMPTS (Placeholder)
-                 ============================================ -->
-            <div id="page-sell-prompts" class="admin-page">
-                <div class="page-header">
-                    <h1>Sell Prompts</h1>
-                    <p>Record merchandise sales with seller details, product info, and pricing.</p>
+PAGE 3: SELL PROMPTS (Sell Entry Form)
+============================================ -->
+<div id="page-sell-prompts" class="admin-page">
+    <div class="page-header">
+        <h1>Sell Prompts</h1>
+        <p>Record merchandise sales with seller details, product info, and pricing.</p>
+    </div>
+
+    <!-- Success Alert (hidden by default) -->
+    <div id="sell-success" class="alert alert-success hidden">
+        <span class="alert-icon">✓</span>
+        <div>
+            <strong>Success!</strong> Sell prompt saved to The Library.
+            <button type="button" class="alert-close"
+                onclick="document.getElementById('sell-success').classList.add('hidden')">×</button>
+        </div>
+    </div>
+
+    <!-- Error Alert (hidden by default) -->
+    <div id="sell-error" class="alert alert-danger hidden">
+        <span class="alert-icon">⚠</span>
+        <div>
+            <strong>Error:</strong> <span id="sell-error-message"></span>
+            <button type="button" class="alert-close"
+                onclick="document.getElementById('sell-error').classList.add('hidden')">×</button>
+        </div>
+    </div>
+
+    <!-- Sell Entry Form -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Sell Prompt Entry</h2>
+        </div>
+        <div class="card-body">
+            <form id="sell-form" onsubmit="submitSellPrompt(event)">
+
+                <!-- Section 1: Binary Trigger -->
+                <div class="form-section">
+                    <div class="form-section-title">Daily Sell Check</div>
+
+                    <div class="binary-toggle">
+                        <div class="binary-toggle-label">Were there any sell updates?</div>
+                        <div class="binary-toggle-options">
+                            <button type="button"
+                                class="binary-toggle-option"
+                                id="sell-toggle-yes"
+                                onclick="toggleSellForm('yes')">
+                                Yes
+                            </button>
+                            <button type="button"
+                                class="binary-toggle-option selected-no"
+                                id="sell-toggle-no"
+                                onclick="toggleSellForm('no')">
+                                No
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="coming-soon">
-                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                        <path d="M2 17l10 5 10-5"/>
-                        <path d="M2 12l10 5 10-5"/>
-                    </svg>
-                    <h3>Coming Soon</h3>
-                    <p>This form will write to the <code>sell_prompts</code> table.</p>
-                    <p>Binary trigger: "Were there any sell updates?" → If yes: Seller Name, City, State, Date, Time, Brand, Product, Sales Channel, Price</p>
+
+                <!-- Section 2: Sell Details (conditional, hidden by default) -->
+                <div id="sell-details-section" class="conditional-section">
+
+                    <div class="form-section">
+                        <div class="form-section-title">Seller Information</div>
+
+                        <div class="form-row">
+                            <!-- Field 1: Seller Name -->
+                            <div class="form-group">
+                                <label class="form-label" for="sell-seller-name">
+                                    Seller Name <span class="required">*</span>
+                                </label>
+                                <input type="text"
+                                    id="sell-seller-name"
+                                    class="form-input"
+                                    placeholder="e.g., John Doe"
+                                    required>
+                            </div>
+
+                            <!-- Field 2: City -->
+                            <div class="form-group">
+                                <label class="form-label" for="sell-city">
+                                    City <span class="required">*</span>
+                                </label>
+                                <input type="text"
+                                    id="sell-city"
+                                    class="form-input"
+                                    placeholder="e.g., Houston"
+                                    required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <!-- Field 3: State -->
+                            <div class="form-group">
+                                <label class="form-label" for="sell-state">
+                                    State <span class="required">*</span>
+                                </label>
+                                <input type="text"
+                                    id="sell-state"
+                                    class="form-input"
+                                    placeholder="e.g., TX"
+                                    required>
+                            </div>
+
+                            <!-- Field 4: Date -->
+                            <div class="form-group">
+                                <label class="form-label" for="sell-date">
+                                    Date <span class="required">*</span>
+                                </label>
+                                <select id="sell-date" class="form-select" required>
+                                    <option value="">-- Select Date --</option>
+                                    <option value="yesterday">Day before alert</option>
+                                    <option value="today">Day of alert</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <!-- Field 5: Time -->
+                            <div class="form-group">
+                                <label class="form-label" for="sell-time">
+                                    Time <span class="required">*</span>
+                                </label>
+                                <select id="sell-time" class="form-select" required>
+                                    <option value="">-- Select Time --</option>
+                                    <option value="12am">12:00 AM</option>
+                                    <option value="1am">1:00 AM</option>
+                                    <option value="2am">2:00 AM</option>
+                                    <option value="3am">3:00 AM</option>
+                                    <option value="4am">4:00 AM</option>
+                                    <option value="5am">5:00 AM</option>
+                                    <option value="6am">6:00 AM</option>
+                                    <option value="7am">7:00 AM</option>
+                                    <option value="8am">8:00 AM</option>
+                                    <option value="9am">9:00 AM</option>
+                                    <option value="10am">10:00 AM</option>
+                                    <option value="11am">11:00 AM</option>
+                                    <option value="12pm">12:00 PM</option>
+                                    <option value="1pm">1:00 PM</option>
+                                    <option value="2pm">2:00 PM</option>
+                                    <option value="3pm">3:00 PM</option>
+                                    <option value="4pm">4:00 PM</option>
+                                    <option value="5pm">5:00 PM</option>
+                                    <option value="6pm">6:00 PM</option>
+                                    <option value="7pm">7:00 PM</option>
+                                    <option value="8pm">8:00 PM</option>
+                                    <option value="9pm">9:00 PM</option>
+                                    <option value="10pm">10:00 PM</option>
+                                    <option value="11pm">11:00 PM</option>
+                                </select>
+                            </div>
+
+                            <!-- Field 6: Brand -->
+                            <div class="form-group">
+                                <label class="form-label" for="sell-brand">
+                                    Brand <span class="required">*</span>
+                                </label>
+                                <input type="text"
+                                    id="sell-brand"
+                                    class="form-input"
+                                    placeholder="e.g., Coach, Goyard, Marc Jacobs, Alo"
+                                    required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-section-title">Product & Sales Channel</div>
+
+                        <div class="form-row">
+                            <!-- Field 7: Product -->
+                            <div class="form-group">
+                                <label class="form-label" for="sell-product">
+                                    Product <span class="required">*</span>
+                                </label>
+                                <select id="sell-product" class="form-select" required>
+                                    <option value="">-- Select Product --</option>
+                                    <option value="bags">Bags</option>
+                                    <option value="wallets">Wallets</option>
+                                    <option value="backpacks">Backpacks</option>
+                                </select>
+                            </div>
+
+                            <!-- Field 8: Sales Channel -->
+                            <div class="form-group">
+                                <label class="form-label" for="sell-channel">
+                                    Where Sold <span class="required">*</span>
+                                </label>
+                                <select id="sell-channel" class="form-select" required onchange="toggleSocialMediaField()">
+                                    <option value="">-- Select Channel --</option>
+                                    <option value="Facebook Market">Facebook Market</option>
+                                    <option value="Social Media">Social Media (not listed)</option>
+                                    <option value="Seller's Connection">Seller's Connection</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Field 9: Social Media Site (conditional, only if "Social Media" selected) -->
+                        <div class="form-group conditional-field" id="social-media-group">
+                            <label class="form-label" for="sell-social-media">
+                                Social Media Site <span class="required">*</span>
+                            </label>
+                            <input type="text"
+                                id="sell-social-media"
+                                class="form-input"
+                                placeholder="e.g., Instagram, TikTok, Depop">
+                        </div>
+
+                        <div class="form-row">
+                            <!-- Field 10: Price -->
+                            <div class="form-group">
+                                <label class="form-label" for="sell-price">
+                                    Price (USD) <span class="required">*</span>
+                                </label>
+                                <input type="number"
+                                    id="sell-price"
+                                    class="form-input"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="e.g., 125.00"
+                                    required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="card-footer">
+                    <button type="button"
+                        class="btn btn-secondary"
+                        onclick="resetSellForm()">
+                        Clear Form
+                    </button>
+                    <button type="submit"
+                        class="btn btn-submit"
+                        id="sell-submit-btn"
+                        disabled>
+                        Save to The Library
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Recent Entries (last 5) -->
+    <div class="card mt-20">
+        <div class="card-header">
+            <h2>Recent Entries</h2>
+            <button class="btn btn-sm btn-secondary" onclick="loadRecentSells()">
+                Refresh
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="recent-sells-list">
+                <div class="loading">
+                    <p>Click "Refresh" to load recent entries...</p>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
 
             <!-- ============================================
                  PAGE 4: GOOGLE TRENDS UPLOAD (Placeholder)
