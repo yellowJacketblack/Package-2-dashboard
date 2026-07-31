@@ -1150,22 +1150,199 @@ Run Status Update
 </div>
 
             <!-- ============================================
-                 PAGE 7: BRAND METADATA (Placeholder)
-                 ============================================ -->
-            <div id="page-brand-metadata" class="admin-page">
-                <div class="page-header">
-                    <h1>Brand Metadata</h1>
-                    <p>Manage brand details separate from keyword data. Currently tracking Coach, Goyard, Marc Jacobs, and Alo.</p>
-                </div>
-                <div class="coming-soon">
-                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                    </svg>
-                    <h3>Coming Soon</h3>
-                    <p>This page will display and edit data from the <code>brand_metadata</code> table.</p>
-                    <p>Fields: Brand key, full name, category, website, description, logo URL, active status</p>
-                </div>
-            </div>
+PAGE 7: BRAND METADATA
+\============================================ -->
+<div id="page-brand-metadata" class="admin-page">
+<div class="page-header">
+<h1>Brand Metadata</h1>
+<p>Manage brand details separate from keyword data.</p>
+</div>
+
+<!-- Success Alert -->
+<div id="brand-success" class="alert alert-success hidden">
+<span class="alert-icon">✓</span>
+<div>
+<strong>Success!</strong> <span id="brand-success-message"></span>
+<button type="button" class="alert-close"
+onclick="document.getElementById('brand-success').classList.add('hidden')">×</button>
+</div>
+</div>
+
+<!-- Error Alert -->
+<div id="brand-error" class="alert alert-danger hidden">
+<span class="alert-icon">⚠</span>
+<div>
+<strong>Error:</strong> <span id="brand-error-message"></span>
+<button type="button" class="alert-close"
+onclick="document.getElementById('brand-error').classList.add('hidden')">×</button>
+</div>
+</div>
+
+<!-- Add New Brand Form -->
+<div class="card mb-20">
+<div class="card-header">
+<h2>Add New Brand</h2>
+<button class="btn btn-sm btn-secondary" id="brand-form-toggle" onclick="toggleBrandForm()">
++ Add Brand
+</button>
+</div>
+<div class="card-body">
+<form id="brand-form" onsubmit="submitBrand(event)" style="display: none;">
+
+<input type="hidden" id="brand-edit-id" value="">
+
+<div class="form-row">
+<!-- Brand Key -->
+<div class="form-group">
+<label class="form-label" for="brand-key">
+Brand Key <span class="required">*</span>
+</label>
+<input type="text"
+id="brand-key"
+class="form-input"
+placeholder="e.g., coach, goyard, marc_jacobs"
+required>
+<p class="font-sm" style="color: #555; margin-top: 5px;">
+Short identifier used internally (lowercase, no spaces).
+</p>
+</div>
+
+<!-- Brand Full Name -->
+<div class="form-group">
+<label class="form-label" for="brand-full-name">
+Brand Full Name <span class="required">*</span>
+</label>
+<input type="text"
+id="brand-full-name"
+class="form-input"
+placeholder="e.g., Coach, Goyard, Marc Jacobs"
+required>
+</div>
+</div>
+
+<div class="form-row">
+<!-- Category -->
+<div class="form-group">
+<label class="form-label" for="brand-category">Category</label>
+<input type="text"
+id="brand-category"
+class="form-input"
+placeholder="e.g., Luxury Handbags, Activewear">
+</div>
+
+<!-- Website -->
+<div class="form-group">
+<label class="form-label" for="brand-website">Website</label>
+<input type="url"
+id="brand-website"
+class="form-input"
+placeholder="https://www.coach.com">
+</div>
+</div>
+
+<!-- Description -->
+<div class="form-group">
+<label class="form-label" for="brand-description">Description</label>
+<textarea id="brand-description"
+class="form-textarea"
+placeholder="Brief description of the brand..."></textarea>
+</div>
+
+<!-- Logo URL -->
+<div class="form-group">
+<label class="form-label" for="brand-logo-url">Logo URL</label>
+<input type="url"
+id="brand-logo-url"
+class="form-input"
+placeholder="https://example.com/logo.png">
+</div>
+
+<!-- Submit Buttons -->
+<div class="card-footer">
+<button type="button" class="btn btn-secondary" onclick="resetBrandForm()">Cancel</button>
+<button type="submit" class="btn btn-submit" id="brand-submit-btn">Add Brand</button>
+</div>
+</form>
+</div>
+</div>
+
+<!-- Existing Brands List -->
+<div class="card">
+<div class="card-header">
+<h2>Existing Brands <span id="brand-count" class="font-sm" style="color: #555; font-weight: normal;"></span></h2>
+<button class="btn btn-sm btn-secondary" onclick="loadBrands()">Refresh</button>
+</div>
+<div class="card-body">
+<div id="brand-list">
+<div class="loading">
+<p>Loading brands...</p>
+</div>
+</div>
+
+<div id="brand-empty" class="empty-state hidden">
+<h3>No Brands Yet</h3>
+<p>Add your first brand using the form above.</p>
+</div>
+</div>
+</div>
+
+<!-- Edit Brand Modal (hidden by default) -->
+<div id="brand-edit-modal" class="evidence-modal-overlay hidden" onclick="closeBrandEditModal(event)">
+<div class="evidence-modal-box" onclick="event.stopPropagation()" style="max-width: 600px;">
+<div class="evidence-modal-header">
+<h3>Edit Brand</h3>
+<button type="button" class="alert-close" onclick="closeBrandEditModal()">×</button>
+</div>
+<div class="evidence-modal-body">
+<form id="brand-edit-form" onsubmit="submitBrandEdit(event)">
+<input type="hidden" id="edit-brand-id">
+
+<div class="form-row">
+<div class="form-group">
+<label class="form-label" for="edit-brand-key">
+Brand Key <span class="required">*</span>
+</label>
+<input type="text" id="edit-brand-key" class="form-input" required>
+</div>
+<div class="form-group">
+<label class="form-label" for="edit-brand-full-name">
+Full Name <span class="required">*</span>
+</label>
+<input type="text" id="edit-brand-full-name" class="form-input" required>
+</div>
+</div>
+
+<div class="form-row">
+<div class="form-group">
+<label class="form-label" for="edit-brand-category">Category</label>
+<input type="text" id="edit-brand-category" class="form-input">
+</div>
+<div class="form-group">
+<label class="form-label" for="edit-brand-website">Website</label>
+<input type="url" id="edit-brand-website" class="form-input">
+</div>
+</div>
+
+<div class="form-group">
+<label class="form-label" for="edit-brand-description">Description</label>
+<textarea id="edit-brand-description" class="form-textarea"></textarea>
+</div>
+
+<div class="form-group">
+<label class="form-label" for="edit-brand-logo-url">Logo URL</label>
+<input type="url" id="edit-brand-logo-url" class="form-input">
+</div>
+
+<div class="card-footer">
+<button type="button" class="btn btn-danger" onclick="deleteBrandFromModal()">Delete Brand</button>
+<button type="button" class="btn btn-secondary" onclick="closeBrandEditModal()">Cancel</button>
+<button type="submit" class="btn btn-submit" id="brand-edit-submit-btn">Save Changes</button>
+</div>
+</form>
+</div>
+</div>
+</div>
+</div>
 
             <!-- ============================================
                  PAGE 8: LINE ALERTS LOG (Placeholder)
@@ -1336,6 +1513,8 @@ Run Status Update
             setDefaultRoiDate();
             // Load strategies on page load
             loadSearchStrategies();
+            // Load brands on page load
+            loadBrands();
             
             // Logout button
             document.getElementById('sidebar-logout-btn').addEventListener('click', logout);
@@ -2718,6 +2897,275 @@ actedOn: actedOn,
 evidence: evidence
 };
 }
+        // ============================================
+// SECTION 8: Brand Metadata Management
+// ============================================
+
+// Load all brands
+async function loadBrands() {
+const listEl = document.getElementById('brand-list');
+const emptyEl = document.getElementById('brand-empty');
+const countEl = document.getElementById('brand-count');
+
+if (listEl) {
+listEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Loading brands...</p></div>';
+}
+
+try {
+const { data, error } = await supabaseClient
+.from('brand_metadata')
+.select('*')
+.order('brand_full_name', { ascending: true });
+
+if (error) throw error;
+
+if (listEl) listEl.innerHTML = '';
+
+if (!data || data.length === 0) {
+if (emptyEl) emptyEl.classList.remove('hidden');
+if (countEl) countEl.textContent = '(0)';
+return;
+}
+
+if (emptyEl) emptyEl.classList.add('hidden');
+if (countEl) countEl.textContent = `(${data.length})`;
+
+listEl.innerHTML = data.map(brand => {
+const logoHtml = brand.logo_url
+? `<img src="${brand.logo_url}" alt="${brand.brand_full_name}" style="width: 50px; height: 50px; object-fit: contain; border: 2px solid #2d2d2d; border-radius: 8px; background: white; padding: 3px;">`
+: `<div style="width: 50px; height: 50px; border: 2px solid #2d2d2d; border-radius: 8px; background: var(--card-bg-alt); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; color: #888;">${brand.brand_full_name.charAt(0)}</div>`;
+
+return `
+<div class="list-item" style="align-items: flex-start;">
+<div style="flex-shrink: 0; margin-right: 15px;">
+${logoHtml}
+</div>
+<div class="list-item-content">
+<div class="list-item-title">
+<span class="badge badge-admin">${brand.brand_key}</span>
+${brand.brand_full_name}
+</div>
+<div class="list-item-subtitle">
+${brand.category ? `Category: ${brand.category} | ` : ''}
+${brand.website ? `<a href="${brand.website}" target="_blank" style="color: var(--info-color);">${brand.website}</a> | ` : ''}
+Added: ${new Date(brand.created_at).toLocaleDateString()}
+</div>
+${brand.description ? `<div class="font-sm" style="margin-top: 8px; color: #555;">${brand.description}</div>` : ''}
+</div>
+<div class="list-item-actions">
+<button class="btn btn-sm btn-secondary" onclick="openEditBrandModal('${brand.id}')">Edit</button>
+</div>
+</div>
+`;
+}).join('');
+
+} catch (err) {
+if (listEl) {
+listEl.innerHTML = `
+<div class="alert alert-danger">
+<p>Error loading brands: ${err.message}</p>
+</div>
+`;
+}
+}
+}
+
+// Toggle add brand form visibility
+function toggleBrandForm() {
+const form = document.getElementById('brand-form');
+const toggleBtn = document.getElementById('brand-form-toggle');
+
+if (form.style.display === 'none') {
+form.style.display = 'block';
+toggleBtn.textContent = '− Cancel';
+} else {
+form.style.display = 'none';
+toggleBtn.textContent = '+ Add Brand';
+resetBrandForm();
+}
+}
+
+// Submit new brand
+async function submitBrand(event) {
+event.preventDefault();
+
+const submitBtn = document.getElementById('brand-submit-btn');
+const successAlert = document.getElementById('brand-success');
+const errorAlert = document.getElementById('brand-error');
+const successMsg = document.getElementById('brand-success-message');
+const errorMsg = document.getElementById('brand-error-message');
+
+successAlert.classList.add('hidden');
+errorAlert.classList.add('hidden');
+
+submitBtn.disabled = true;
+submitBtn.textContent = 'Saving...';
+
+const data = {
+brand_key: document.getElementById('brand-key').value.trim().toLowerCase(),
+brand_full_name: document.getElementById('brand-full-name').value.trim(),
+category: document.getElementById('brand-category').value.trim() || null,
+website: document.getElementById('brand-website').value.trim() || null,
+description: document.getElementById('brand-description').value.trim() || null,
+logo_url: document.getElementById('brand-logo-url').value.trim() || null,
+};
+
+try {
+const { error } = await supabaseClient
+.from('brand_metadata')
+.insert([data]);
+
+if (error) throw error;
+
+successMsg.textContent = `Brand "${data.brand_full_name}" added successfully.`;
+successAlert.classList.remove('hidden');
+
+toggleBrandForm();
+loadBrands();
+
+} catch (err) {
+errorMsg.textContent = err.message;
+errorAlert.classList.remove('hidden');
+} finally {
+submitBtn.disabled = false;
+submitBtn.textContent = 'Add Brand';
+}
+}
+
+// Reset add brand form
+function resetBrandForm() {
+document.getElementById('brand-form').reset();
+document.getElementById('brand-edit-id').value = '';
+document.getElementById('brand-success').classList.add('hidden');
+document.getElementById('brand-error').classList.add('hidden');
+}
+
+// Open edit modal with brand data
+async function openEditBrandModal(brandId) {
+const modal = document.getElementById('brand-edit-modal');
+
+modal.classList.remove('hidden');
+
+try {
+const { data, error } = await supabaseClient
+.from('brand_metadata')
+.select('*')
+.eq('id', brandId)
+.single();
+
+if (error) throw error;
+
+document.getElementById('edit-brand-id').value = data.id;
+document.getElementById('edit-brand-key').value = data.brand_key || '';
+document.getElementById('edit-brand-full-name').value = data.brand_full_name || '';
+document.getElementById('edit-brand-category').value = data.category || '';
+document.getElementById('edit-brand-website').value = data.website || '';
+document.getElementById('edit-brand-description').value = data.description || '';
+document.getElementById('edit-brand-logo-url').value = data.logo_url || '';
+
+} catch (err) {
+showBrandError('Failed to load brand for editing: ' + err.message);
+closeBrandEditModal();
+}
+}
+
+// Submit brand edit
+async function submitBrandEdit(event) {
+event.preventDefault();
+
+const submitBtn = document.getElementById('brand-edit-submit-btn');
+const brandId = document.getElementById('edit-brand-id').value;
+
+submitBtn.disabled = true;
+submitBtn.textContent = 'Saving...';
+
+const data = {
+brand_key: document.getElementById('edit-brand-key').value.trim().toLowerCase(),
+brand_full_name: document.getElementById('edit-brand-full-name').value.trim(),
+category: document.getElementById('edit-brand-category').value.trim() || null,
+website: document.getElementById('edit-brand-website').value.trim() || null,
+description: document.getElementById('edit-brand-description').value.trim() || null,
+logo_url: document.getElementById('edit-brand-logo-url').value.trim() || null,
+updated_at: new Date().toISOString(),
+};
+
+try {
+const { error } = await supabaseClient
+.from('brand_metadata')
+.update(data)
+.eq('id', brandId);
+
+if (error) throw error;
+
+closeBrandEditModal();
+showBrandSuccess(`Brand "${data.brand_full_name}" updated successfully.`);
+loadBrands();
+
+} catch (err) {
+showBrandError('Failed to update brand: ' + err.message);
+} finally {
+submitBtn.disabled = false;
+submitBtn.textContent = 'Save Changes';
+}
+}
+
+// Delete brand from edit modal
+async function deleteBrandFromModal() {
+const brandId = document.getElementById('edit-brand-id').value;
+const brandName = document.getElementById('edit-brand-full-name').value;
+
+if (!confirm(`Are you sure you want to delete "${brandName}"? This cannot be undone.`)) {
+return;
+}
+
+try {
+const { error } = await supabaseClient
+.from('brand_metadata')
+.delete()
+.eq('id', brandId);
+
+if (error) throw error;
+
+closeBrandEditModal();
+showBrandSuccess(`Brand "${brandName}" deleted.`);
+loadBrands();
+
+} catch (err) {
+showBrandError('Failed to delete brand: ' + err.message);
+}
+}
+
+// Close edit modal
+function closeBrandEditModal(event) {
+if (event && event.target !== event.currentTarget) return;
+document.getElementById('brand-edit-modal').classList.add('hidden');
+}
+
+// Show success message
+function showBrandSuccess(message) {
+const alertEl = document.getElementById('brand-success');
+const msgEl = document.getElementById('brand-success-message');
+msgEl.textContent = message;
+alertEl.classList.remove('hidden');
+}
+
+// Show error message
+function showBrandError(message) {
+const alertEl = document.getElementById('brand-error');
+const msgEl = document.getElementById('brand-error-message');
+msgEl.textContent = message;
+alertEl.classList.remove('hidden');
+}
+
+// Make functions globally accessible
+window.loadBrands = loadBrands;
+window.toggleBrandForm = toggleBrandForm;
+window.submitBrand = submitBrand;
+window.resetBrandForm = resetBrandForm;
+window.openEditBrandModal = openEditBrandModal;
+window.submitBrandEdit = submitBrandEdit;
+window.deleteBrandFromModal = deleteBrandFromModal;
+window.closeBrandEditModal = closeBrandEditModal;
 
 // Make functions globally accessible
 window.loadSearchStrategies = loadSearchStrategies;
