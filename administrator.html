@@ -1037,23 +1037,117 @@ Refresh
 </div>
 
             <!-- ============================================
-                 PAGE 6: SEARCH STRATEGIES LOG (Placeholder)
-                 ============================================ -->
-            <div id="page-search-strategies" class="admin-page">
-                <div class="page-header">
-                    <h1>Search Strategies Log</h1>
-                    <p>Track what GIRL, the Butler suggested each day and whether the administrator acted on them.</p>
-                </div>
-                <div class="coming-soon">
-                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8"/>
-                        <path d="M21 21l-4.35-4.35"/>
-                    </svg>
-                    <h3>Coming Soon</h3>
-                    <p>This page will display data from the <code>search_strategies</code> table.</p>
-                    <p>Shows: Strategy date, brand, keyword, strategy type (ATPP/Google Trends), acted on status, action evidence</p>
-                </div>
-            </div>
+PAGE 6: SEARCH STRATEGIES LOG
+\============================================ -->
+<div id="page-search-strategies" class="admin-page">
+<div class="page-header">
+<h1>Search Strategies Log</h1>
+<p>Track what GIRL, the Butler suggested each day and whether the administrator acted on them.</p>
+</div>
+
+<!-- Status Update Alert -->
+<div id="strategies-update-alert" class="alert alert-success hidden">
+<span class="alert-icon">✓</span>
+<div>
+<strong id="strategies-update-title">Status Updated!</strong>
+<span id="strategies-update-message"></span>
+<button type="button" class="alert-close"
+onclick="document.getElementById('strategies-update-alert').classList.add('hidden')">×</button>
+</div>
+</div>
+
+<!-- Error Alert -->
+<div id="strategies-error" class="alert alert-danger hidden">
+<span class="alert-icon">⚠</span>
+<div>
+<strong>Error:</strong> <span id="strategies-error-message"></span>
+<button type="button" class="alert-close"
+onclick="document.getElementById('strategies-error').classList.add('hidden')">×</button>
+</div>
+</div>
+
+<!-- Filters + Actions Bar -->
+<div class="card mb-20">
+<div class="card-header">
+<h2>Filters & Actions</h2>
+</div>
+<div class="card-body">
+<div class="form-row">
+<!-- Date Range Start -->
+<div class="form-group">
+<label class="form-label" for="strat-filter-start">Date From</label>
+<input type="date" id="strat-filter-start" class="form-input">
+</div>
+
+<!-- Date Range End -->
+<div class="form-group">
+<label class="form-label" for="strat-filter-end">Date To</label>
+<input type="date" id="strat-filter-end" class="form-input">
+</div>
+
+<!-- Brand Filter -->
+<div class="form-group">
+<label class="form-label" for="strat-filter-brand">Brand</label>
+<input type="text" id="strat-filter-brand" class="form-input" placeholder="All brands">
+</div>
+
+<!-- Status Filter -->
+<div class="form-group">
+<label class="form-label" for="strat-filter-status">Status</label>
+<select id="strat-filter-status" class="form-select">
+<option value="all">All Strategies</option>
+<option value="acted-on">Acted On</option>
+<option value="not-acted-on">Not Acted On</option>
+<option value="pending">Pending Review</option>
+</select>
+</div>
+</div>
+
+<div class="card-footer" style="display: flex; gap: 10px; flex-wrap: wrap;">
+<button class="btn btn-secondary" onclick="loadSearchStrategies()">Apply Filters</button>
+<button class="btn btn-secondary" onclick="resetStrategyFilters()">Clear Filters</button>
+<button class="btn btn-submit" id="run-status-update-btn" onclick="updateAllPendingStrategies()">
+Run Status Update
+</button>
+</div>
+</div>
+</div>
+
+<!-- Strategies Table -->
+<div class="card">
+<div class="card-header">
+<h2>Strategies <span id="strategies-count" class="font-sm" style="color: #555; font-weight: normal;"></span></h2>
+<button class="btn btn-sm btn-secondary" onclick="loadSearchStrategies()">Refresh</button>
+</div>
+<div class="card-body">
+<div id="strategies-list">
+<div class="loading">
+<p>Loading strategies...</p>
+</div>
+</div>
+
+<div id="strategies-empty" class="empty-state hidden">
+<h3>No Strategies Found</h3>
+<p>No strategies match your current filters, or no strategies have been logged yet.</p>
+</div>
+</div>
+</div>
+
+<!-- Evidence Modal (hidden by default) -->
+<div id="evidence-modal" class="modal-overlay hidden" onclick="closeEvidenceModal(event)">
+<div class="modal-content" onclick="event.stopPropagation()">
+<div class="modal-header">
+<h3>Action Evidence</h3>
+<button type="button" class="alert-close" onclick="closeEvidenceModal()">×</button>
+</div>
+<div class="modal-body">
+<div id="evidence-modal-content">
+<p>Loading...</p>
+</div>
+</div>
+</div>
+</div>
+</div>
 
             <!-- ============================================
                  PAGE 7: BRAND METADATA (Placeholder)
@@ -1240,6 +1334,8 @@ Refresh
             setDefaultInventoryDate();
             // Set default date for ROI form (most recent Friday)
             setDefaultRoiDate();
+            // Load strategies on page load
+            loadSearchStrategies();
             
             // Logout button
             document.getElementById('sidebar-logout-btn').addEventListener('click', logout);
@@ -2194,6 +2290,441 @@ window.calculateRoiTotal = calculateRoiTotal;
 window.submitRoiPrompt = submitRoiPrompt;
 window.resetRoiForm = resetRoiForm;
 window.loadRecentRoi = loadRecentRoi;
+
+        // ============================================
+// SECTION 7: Search Strategies Log
+// ============================================
+
+// Load strategies with filters
+async function loadSearchStrategies() {
+const listEl = document.getElementById('strategies-list');
+const emptyEl = document.getElementById('strategies-empty');
+const countEl = document.getElementById('strategies-count');
+
+if (listEl) {
+listEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Loading strategies...</p></div>';
+}
+
+try {
+let query = supabaseClient
+.from('search_strategies')
+.select('*')
+.order('strategy_date', { ascending: false })
+.order('created_at', { ascending: false });
+
+// Apply filters
+const dateStart = document.getElementById('strat-filter-start').value;
+const dateEnd = document.getElementById('strat-filter-end').value;
+const brandFilter = document.getElementById('strat-filter-brand').value.trim();
+const statusFilter = document.getElementById('strat-filter-status').value;
+
+if (dateStart) {
+query = query.gte('strategy_date', dateStart);
+}
+if (dateEnd) {
+query = query.lte('strategy_date', dateEnd);
+}
+if (brandFilter) {
+query = query.ilike('brand', `%${brandFilter}%`);
+}
+if (statusFilter === 'acted-on') {
+query = query.eq('acted_on', true);
+} else if (statusFilter === 'not-acted-on') {
+query = query.eq('acted_on', false);
+} else if (statusFilter === 'pending') {
+query = query.is('acted_on', null);
+}
+
+const { data, error } = await query.limit(100);
+
+if (error) throw error;
+
+if (listEl) listEl.innerHTML = '';
+
+if (!data || data.length === 0) {
+if (emptyEl) emptyEl.classList.remove('hidden');
+if (countEl) countEl.textContent = '(0)';
+return;
+}
+
+if (emptyEl) emptyEl.classList.add('hidden');
+if (countEl) countEl.textContent = `(${data.length})`;
+
+listEl.innerHTML = data.map(item => {
+const statusBadge = getStatusBadge(item.acted_on);
+const evidenceButton = item.acted_on_evidence
+? `<button class="btn btn-sm btn-secondary" onclick="viewEvidence('${item.id}')">View Evidence</button>`
+: '<span class="font-sm" style="color: #999;">No evidence</span>';
+
+return `
+<div class="list-item">
+<div class="list-item-content">
+<div class="list-item-title">
+<span class="badge badge-${item.strategy_type === 'ATPP' ? 'seller' : 'admin'}">${item.strategy_type}</span>
+<span class="badge badge-admin">${item.brand}</span>
+${item.keyword}
+${statusBadge}
+</div>
+<div class="list-item-subtitle">
+${item.strategy_date} ${item.day_of_week ? '(' + item.day_of_week + ')' : ''}
+${item.acted_on_date ? ' | Acted on: ' + item.acted_on_date : ''}
+</div>
+</div>
+<div class="list-item-actions" style="margin-left: 15px;">
+${evidenceButton}
+</div>
+</div>
+`;
+}).join('');
+
+} catch (err) {
+if (listEl) {
+listEl.innerHTML = `
+<div class="alert alert-danger">
+<p>Error loading strategies: ${err.message}</p>
+</div>
+`;
+}
+}
+}
+
+// Get status badge HTML
+function getStatusBadge(actedOn) {
+if (actedOn === true) {
+return '<span class="badge badge-success">✓ Acted On</span>';
+} else if (actedOn === false) {
+return '<span class="badge badge-danger">✗ Not Acted On</span>';
+} else {
+return '<span class="badge badge-warning">⏳ Pending</span>';
+}
+}
+
+// Reset filters
+function resetStrategyFilters() {
+document.getElementById('strat-filter-start').value = '';
+document.getElementById('strat-filter-end').value = '';
+document.getElementById('strat-filter-brand').value = '';
+document.getElementById('strat-filter-status').value = 'all';
+loadSearchStrategies();
+}
+
+// View evidence in modal
+function viewEvidence(strategyId) {
+const modal = document.getElementById('evidence-modal');
+const content = document.getElementById('evidence-modal-content');
+
+modal.classList.remove('hidden');
+
+// Find the strategy in the current dataset
+// Since we don't cache, we need to fetch it
+supabaseClient
+.from('search_strategies')
+.select('*')
+.eq('id', strategyId)
+.single()
+.then(({ data, error }) => {
+if (error || !data) {
+content.innerHTML = '<p>Error loading evidence.</p>';
+return;
+}
+
+let evidenceHtml = '<div style="margin-bottom: 20px;">';
+evidenceHtml += `<p><strong>Strategy Date:</strong> ${data.strategy_date}</p>`;
+evidenceHtml += `<p><strong>Brand:</strong> ${data.brand}</p>`;
+evidenceHtml += `<p><strong>Keyword:</strong> ${data.keyword}</p>`;
+evidenceHtml += `<p><strong>Type:</strong> ${data.strategy_type}</p>`;
+evidenceHtml += `<p><strong>Acted On:</strong> ${data.acted_on === true ? 'Yes' : data.acted_on === false ? 'No' : 'Pending'}</p>`;
+if (data.acted_on_date) {
+evidenceHtml += `<p><strong>Acted On Date:</strong> ${data.acted_on_date}</p>`;
+}
+evidenceHtml += '</div>';
+
+if (data.acted_on_evidence) {
+evidenceHtml += '<h4>Evidence Details</h4>';
+evidenceHtml += '<pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 0.85rem;">';
+evidenceHtml += JSON.stringify(data.acted_on_evidence, null, 2);
+evidenceHtml += '</pre>';
+} else {
+evidenceHtml += '<p>No evidence data available.</p>';
+}
+
+content.innerHTML = evidenceHtml;
+});
+}
+
+// Close evidence modal
+function closeEvidenceModal(event) {
+if (event && event.target !== event.currentTarget) return;
+document.getElementById('evidence-modal').classList.add('hidden');
+}
+
+// ============================================
+// Run Status Update — checks all pending strategies
+// against inventory_prompts, sell_prompts, google_trends_uploads, and roi_prompts
+// ============================================
+async function updateAllPendingStrategies() {
+const btn = document.getElementById('run-status-update-btn');
+const alertEl = document.getElementById('strategies-update-alert');
+const errorEl = document.getElementById('strategies-error');
+const titleEl = document.getElementById('strategies-update-title');
+const msgEl = document.getElementById('strategies-update-message');
+
+alertEl.classList.add('hidden');
+errorEl.classList.add('hidden');
+
+btn.disabled = true;
+btn.textContent = 'Running...';
+
+try {
+// Step 1: Fetch all pending strategies (acted_on IS NULL)
+const { data: pendingStrategies, error: fetchError } = await supabaseClient
+.from('search_strategies')
+.select('*')
+.is('acted_on', null)
+.order('strategy_date', { ascending: false });
+
+if (fetchError) throw fetchError;
+
+if (!pendingStrategies || pendingStrategies.length === 0) {
+titleEl.textContent = 'Nothing to Update';
+msgEl.textContent = 'All strategies already have a status.';
+alertEl.classList.remove('hidden');
+return;
+}
+
+// Step 2: Fetch all inventory, sells, google trends, and roi data
+// We need data within range of all pending strategies
+const oldestDate = pendingStrategies.reduce((min, s) => 
+s.strategy_date < min ? s.strategy_date : min, pendingStrategies[0].strategy_date);
+const newestDatePlus7 = new Date();
+newestDatePlus7.setDate(newestDatePlus7.getDate() + 1);
+
+const dateStr = newestDatePlus7.toISOString().split('T')[0];
+
+const [inventoryRes, sellsRes, trendsRes, roiRes] = await Promise.all([
+supabaseClient.from('inventory_prompts').select('*').gte('date_captured', oldestDate),
+supabaseClient.from('sell_prompts').select('*').gte('sell_date', oldestDate),
+supabaseClient.from('google_trends_uploads').select('*').gte('uploaded_at', oldestDate),
+supabaseClient.from('roi_prompts').select('*').gte('week_ending', oldestDate)
+]);
+
+if (inventoryRes.error) throw inventoryRes.error;
+if (sellsRes.error) throw sellsRes.error;
+if (trendsRes.error) throw trendsRes.error;
+if (roiRes.error) throw roiRes.error;
+
+const inventory = inventoryRes.data || [];
+const sells = sellsRes.data || [];
+const trends = trendsRes.data || [];
+const roi = roiRes.data || [];
+
+// Step 3: Evaluate each strategy
+let updatedCount = 0;
+let actedOnCount = 0;
+let notActedOnCount = 0;
+
+for (const strategy of pendingStrategies) {
+const result = evaluateStrategyActedOn(strategy, inventory, sells, trends, roi);
+
+// Update the strategy in Supabase
+const { error: updateError } = await supabaseClient
+.from('search_strategies')
+.update({
+acted_on: result.actedOn,
+acted_on_date: result.actedOn ? new Date().toISOString().split('T')[0] : null,
+acted_on_evidence: result.evidence
+})
+.eq('id', strategy.id);
+
+if (updateError) {
+console.error(`Failed to update strategy ${strategy.id}:`, updateError);
+continue;
+}
+
+updatedCount++;
+if (result.actedOn === true) actedOnCount++;
+else if (result.actedOn === false) notActedOnCount++;
+}
+
+// Show results
+titleEl.textContent = 'Status Update Complete';
+msgEl.textContent = `${updatedCount} strategies evaluated. ${actedOnCount} acted on, ${notActedOnCount} not acted on.`;
+alertEl.classList.remove('hidden');
+
+// Reload the list
+loadSearchStrategies();
+
+} catch (err) {
+document.getElementById('strategies-error-message').textContent = err.message;
+errorEl.classList.remove('hidden');
+} finally {
+btn.disabled = false;
+btn.textContent = 'Run Status Update';
+}
+}
+
+// ============================================
+// Evaluate a single strategy's acted-on status
+// Uses brand matching + date range (within 7 days)
+// Fuzzy keyword matching uses simple substring match (JavaScript)
+// Full Levenshtein matching should be done in Python backend
+// ============================================
+function evaluateStrategyActedOn(strategy, inventory, sells, trends, roi) {
+const strategyDate = new Date(strategy.strategy_date);
+const sevenDaysLater = new Date(strategyDate);
+sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
+
+const evidence = {
+strategy_date: strategy.strategy_date,
+brand: strategy.brand,
+keyword: strategy.keyword,
+strategy_type: strategy.strategy_type,
+checks: {},
+matched_entries: []
+};
+
+// Check 1: Inventory prompts with matching brand within 7 days
+const matchingInventory = inventory.filter(item => {
+const itemDate = new Date(item.date_captured);
+const brandMatch = item.brand && strategy.brand &&
+item.brand.toLowerCase().includes(strategy.brand.toLowerCase());
+const keywordMatch = item.keyword && strategy.keyword &&
+(item.keyword.toLowerCase().includes(strategy.keyword.toLowerCase()) ||
+strategy.keyword.toLowerCase().includes(item.keyword.toLowerCase()));
+const dateMatch = itemDate >= strategyDate && itemDate <= sevenDaysLater;
+return brandMatch && dateMatch && keywordMatch;
+});
+
+evidence.checks.inventory_match = {
+found: matchingInventory.length > 0,
+count: matchingInventory.length,
+entries: matchingInventory.map(i => ({
+date: i.date_captured,
+brand: i.brand,
+keyword: i.keyword,
+vendor: i.vendor
+}))
+};
+
+if (matchingInventory.length > 0) {
+evidence.matched_entries.push({
+type: 'inventory',
+count: matchingInventory.length
+});
+}
+
+// Check 2: Sell prompts with matching brand within 7 days
+const matchingSells = sells.filter(item => {
+const itemDate = new Date(item.sell_date);
+const brandMatch = item.brand && strategy.brand &&
+item.brand.toLowerCase().includes(strategy.brand.toLowerCase());
+const dateMatch = itemDate >= strategyDate && itemDate <= sevenDaysLater;
+return brandMatch && dateMatch;
+});
+
+evidence.checks.sell_match = {
+found: matchingSells.length > 0,
+count: matchingSells.length,
+entries: matchingSells.map(s => ({
+date: s.sell_date,
+brand: s.brand,
+product: s.product,
+price: s.price,
+seller: s.seller_name
+}))
+};
+
+if (matchingSells.length > 0) {
+evidence.matched_entries.push({
+type: 'sell',
+count: matchingSells.length
+});
+}
+
+// Check 3: Google Trends uploads with matching brand (only if strategy_type is Google Trends)
+if (strategy.strategy_type === 'Google Trends') {
+const matchingTrends = trends.filter(item => {
+const itemDate = new Date(item.uploaded_at);
+const brandMatch = item.brand && strategy.brand &&
+item.brand.toLowerCase().includes(strategy.brand.toLowerCase());
+const dateMatch = itemDate >= strategyDate && itemDate <= sevenDaysLater;
+return brandMatch && dateMatch;
+});
+
+evidence.checks.google_trends_match = {
+found: matchingTrends.length > 0,
+count: matchingTrends.length,
+entries: matchingTrends.map(t => ({
+uploaded_at: t.uploaded_at,
+brand: t.brand,
+date_range: t.date_range
+}))
+};
+
+if (matchingTrends.length > 0) {
+evidence.matched_entries.push({
+type: 'google_trends',
+count: matchingTrends.length
+});
+}
+}
+
+// Check 4: ROI costs in the same week
+const matchingRoi = roi.filter(item => {
+const weekEnding = new Date(item.week_ending);
+const daysDiff = Math.abs((weekEnding - strategyDate) / (1000 * 60 * 60 * 24));
+return daysDiff <= 7;
+});
+
+const hasMerchandiseCost = matchingRoi.some(r => r.merchandise_cost > 0);
+const hasShippingCost = matchingRoi.some(r => r.shipping_cost > 0);
+const hasTravelCost = matchingRoi.some(r => r.admin_travel_cost > 0);
+const hasServicesCost = matchingRoi.some(r => r.admin_services_cost > 0);
+
+evidence.checks.roi_costs = {
+found: matchingRoi.length > 0,
+merchandise_cost_incurred: hasMerchandiseCost,
+shipping_cost_incurred: hasShippingCost,
+admin_travel_cost_incurred: hasTravelCost,
+admin_services_cost_incurred: hasServicesCost
+};
+
+// Determine acted_on status
+const hasDirectAction = matchingInventory.length > 0 || matchingSells.length > 0;
+const hasTrendsAction = strategy.strategy_type === 'Google Trends' && evidence.checks.google_trends_match?.found;
+const hasCosts = hasMerchandiseCost || hasShippingCost;
+const hasOnlyCosts = hasCosts && !hasDirectAction && !hasTravelCost && !hasServicesCost;
+
+let actedOn = false;
+
+if (hasDirectAction || hasTrendsAction) {
+actedOn = true;
+evidence.determination = 'Acted On — direct action evidence found (inventory entry, sell entry, or Google Trends upload matching brand within 7 days)';
+} else if (hasOnlyCosts) {
+actedOn = false;
+evidence.determination = 'Not Acted On — costs incurred but no matching inventory or sell entries (partial action detected: merchandise/shipping costs only)';
+} else if (hasTravelCost || hasServicesCost) {
+actedOn = true;
+evidence.determination = 'Acted On — admin travel or services costs indicate action was taken';
+} else {
+actedOn = false;
+evidence.determination = 'Not Acted On — no matching entries or costs found within 7 days';
+}
+
+evidence.evaluated_at = new Date().toISOString();
+
+return {
+actedOn: actedOn,
+evidence: evidence
+};
+}
+
+// Make functions globally accessible
+window.loadSearchStrategies = loadSearchStrategies;
+window.resetStrategyFilters = resetStrategyFilters;
+window.viewEvidence = viewEvidence;
+window.closeEvidenceModal = closeEvidenceModal;
+window.updateAllPendingStrategies = updateAllPendingStrategies;
 
         // Make functions globally accessible
         window.assignRole = assignRole;
