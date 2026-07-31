@@ -872,23 +872,169 @@ PAGE 3: SELL PROMPTS (Sell Entry Form)
 </div>
 
             <!-- ============================================
-                 PAGE 5: ROI PROMPTS (Placeholder)
-                 ============================================ -->
-            <div id="page-roi-prompts" class="admin-page">
-                <div class="page-header">
-                    <h1>ROI Prompts</h1>
-                    <p>Friday cost entry for merchandise, shipping, admin travel, and admin services.</p>
-                </div>
-                <div class="coming-soon">
-                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="5" width="20" height="14" rx="2"/>
-                        <line x1="2" y1="10" x2="22" y2="10"/>
-                    </svg>
-                    <h3>Coming Soon</h3>
-                    <p>This form will write to the <code>roi_prompts</code> table.</p>
-                    <p>Fields: Week Ending Date, Merchandise Cost, Shipping Cost, Admin Travel Cost, Admin Services Cost</p>
-                </div>
-            </div>
+PAGE 5: ROI PROMPTS (Friday Cost Entry Form)
+\============================================ -->
+<div id="page-roi-prompts" class="admin-page">
+<div class="page-header">
+<h1>ROI Prompts</h1>
+<p>Friday cost entry for merchandise, shipping, admin travel, and admin services.</p>
+</div>
+
+<!-- Success Alert -->
+<div id="roi-success" class="alert alert-success hidden">
+<span class="alert-icon">✓</span>
+<div>
+<strong>Success!</strong> ROI prompt saved to The Library.
+<button type="button" class="alert-close"
+onclick="document.getElementById('roi-success').classList.add('hidden')">×</button>
+</div>
+</div>
+
+<!-- Error Alert -->
+<div id="roi-error" class="alert alert-danger hidden">
+<span class="alert-icon">⚠</span>
+<div>
+<strong>Error:</strong> <span id="roi-error-message"></span>
+<button type="button" class="alert-close"
+onclick="document.getElementById('roi-error').classList.add('hidden')">×</button>
+</div>
+</div>
+
+<!-- ROI Entry Form -->
+<div class="card">
+<div class="card-header">
+<h2>Friday ROI Cost Entry</h2>
+</div>
+<div class="card-body">
+<form id="roi-form" onsubmit="submitRoiPrompt(event)">
+
+<div class="form-section">
+<div class="form-section-title">Week Ending Date</div>
+
+<!-- Field 1: Week Ending Date -->
+<div class="form-group">
+<label class="form-label" for="roi-week-ending">
+Week Ending Date <span class="required">\*</span>
+</label>
+<input type="date"
+id="roi-week-ending"
+class="form-input"
+required>
+<p class="font-sm" style="color: #555; margin-top: 5px;">
+Defaults to the most recent Friday. Adjust if entering data for a different week.
+</p>
+</div>
+</div>
+
+<div class="form-section">
+<div class="form-section-title">Weekly Costs</div>
+
+<!-- Field 2: Merchandise Cost -->
+<div class="form-group">
+<label class="form-label" for="roi-merchandise-cost">
+Merchandise Cost (USD) <span class="required">\*</span>
+</label>
+<input type="number"
+id="roi-merchandise-cost"
+class="form-input"
+step="0.01"
+min="0"
+placeholder="e.g., 250.00"
+oninput="calculateRoiTotal()"
+required>
+</div>
+
+<!-- Field 3: Shipping Cost -->
+<div class="form-group">
+<label class="form-label" for="roi-shipping-cost">
+Shipping Cost (USD) <span class="required">\*</span>
+</label>
+<input type="number"
+id="roi-shipping-cost"
+class="form-input"
+step="0.01"
+min="0"
+placeholder="e.g., 45.00"
+oninput="calculateRoiTotal()"
+required>
+</div>
+
+<!-- Field 4: Admin Travel Cost -->
+<div class="form-group">
+<label class="form-label" for="roi-travel-cost">
+Admin Travel Cost (USD) <span class="required">\*</span>
+</label>
+<input type="number"
+id="roi-travel-cost"
+class="form-input"
+step="0.01"
+min="0"
+placeholder="e.g., 30.00"
+oninput="calculateRoiTotal()"
+required>
+</div>
+
+<!-- Field 5: Admin Services Cost -->
+<div class="form-group">
+<label class="form-label" for="roi-services-cost">
+Admin Services Cost (USD) <span class="required">\*</span>
+</label>
+<input type="number"
+id="roi-services-cost"
+class="form-input"
+step="0.01"
+min="0"
+placeholder="e.g., 150.00"
+oninput="calculateRoiTotal()"
+required>
+</div>
+
+<!-- Total Cost Display (calculated live) -->
+<div class="form-group" style="margin-top: 20px;">
+<label class="form-label">Total Weekly Cost</label>
+<input type="text"
+id="roi-total-cost"
+class="form-input"
+value="$0.00"
+readonly
+style="font-weight: bold; background: #f8f9fa;">
+</div>
+</div>
+
+<!-- Submit Button -->
+<div class="card-footer">
+<button type="button"
+class="btn btn-secondary"
+onclick="resetRoiForm()">
+Clear Form
+</button>
+<button type="submit"
+class="btn btn-submit"
+id="roi-submit-btn">
+Save to The Library
+</button>
+</div>
+</form>
+</div>
+</div>
+
+<!-- Recent Entries (last 5) -->
+<div class="card mt-20">
+<div class="card-header">
+<h2>Recent Entries</h2>
+<button class="btn btn-sm btn-secondary" onclick="loadRecentRoi()">
+Refresh
+</button>
+</div>
+<div class="card-body">
+<div id="recent-roi-list">
+<div class="loading">
+<p>Click "Refresh" to load recent entries...</p>
+</div>
+</div>
+</div>
+</div>
+</div>
 
             <!-- ============================================
                  PAGE 6: SEARCH STRATEGIES LOG (Placeholder)
@@ -1092,7 +1238,9 @@ PAGE 3: SELL PROMPTS (Sell Entry Form)
 
             // Set default date for inventory form
             setDefaultInventoryDate();
-
+            // Set default date for ROI form (most recent Friday)
+            setDefaultRoiDate();
+            
             // Logout button
             document.getElementById('sidebar-logout-btn').addEventListener('click', logout);
         })();
@@ -1895,6 +2043,157 @@ window.previewCsvFile = previewCsvFile;
 window.submitGoogleTrendsUpload = submitGoogleTrendsUpload;
 window.resetGoogleTrendsForm = resetGoogleTrendsForm;
 window.loadRecentGoogleTrends = loadRecentGoogleTrends;
+
+        // ============================================
+// SECTION 6: ROI Prompts (Friday Cost Entry)
+// ============================================
+
+// Set default date to most recent Friday
+function setDefaultRoiDate() {
+const today = new Date();
+const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
+const daysToSubtract = (dayOfWeek - 5 + 7) % 7;
+const mostRecentFriday = new Date(today);
+mostRecentFriday.setDate(today.getDate() - daysToSubtract);
+
+const dateField = document.getElementById('roi-week-ending');
+if (dateField && !dateField.value) {
+dateField.value = mostRecentFriday.toISOString().split('T')[0];
+}
+}
+
+// Calculate total cost live as user types
+function calculateRoiTotal() {
+const merchandise = parseFloat(document.getElementById('roi-merchandise-cost').value) || 0;
+const shipping = parseFloat(document.getElementById('roi-shipping-cost').value) || 0;
+const travel = parseFloat(document.getElementById('roi-travel-cost').value) || 0;
+const services = parseFloat(document.getElementById('roi-services-cost').value) || 0;
+
+const total = merchandise + shipping + travel + services;
+document.getElementById('roi-total-cost').value = '$' + total.toFixed(2);
+}
+
+// Submit ROI prompt to Supabase
+async function submitRoiPrompt(event) {
+event.preventDefault();
+
+const submitBtn = document.getElementById('roi-submit-btn');
+const successAlert = document.getElementById('roi-success');
+const errorAlert = document.getElementById('roi-error');
+const errorMsg = document.getElementById('roi-error-message');
+
+// Hide previous alerts
+successAlert.classList.add('hidden');
+errorAlert.classList.add('hidden');
+
+// Disable button during submission
+submitBtn.disabled = true;
+submitBtn.textContent = 'Saving...';
+
+// Gather form data
+const data = {
+week_ending: document.getElementById('roi-week-ending').value,
+merchandise_cost: parseFloat(document.getElementById('roi-merchandise-cost').value),
+shipping_cost: parseFloat(document.getElementById('roi-shipping-cost').value),
+admin_travel_cost: parseFloat(document.getElementById('roi-travel-cost').value),
+admin_services_cost: parseFloat(document.getElementById('roi-services-cost').value),
+};
+
+try {
+const { error } = await supabaseClient
+.from('roi_prompts')
+.insert([data]);
+
+if (error) throw error;
+
+// Show success
+successAlert.classList.remove('hidden');
+
+// Reset form
+resetRoiForm();
+
+// Reload recent entries
+loadRecentRoi();
+
+} catch (err) {
+errorMsg.textContent = err.message;
+errorAlert.classList.remove('hidden');
+} finally {
+submitBtn.disabled = false;
+submitBtn.textContent = 'Save to The Library';
+}
+}
+
+// Reset ROI form
+function resetRoiForm() {
+document.getElementById('roi-form').reset();
+setDefaultRoiDate();
+calculateRoiTotal();
+
+// Hide alerts
+document.getElementById('roi-success').classList.add('hidden');
+document.getElementById('roi-error').classList.add('hidden');
+}
+
+// Load recent ROI entries (last 5)
+async function loadRecentRoi() {
+const listEl = document.getElementById('recent-roi-list');
+
+if (listEl) {
+listEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Loading recent entries...</p></div>';
+}
+
+try {
+const { data, error } = await supabaseClient
+.from('roi_prompts')
+.select('*')
+.order('created_at', { ascending: false })
+.limit(5);
+
+if (error) throw error;
+
+if (!data || data.length === 0) {
+listEl.innerHTML = `
+<div class="empty-state">
+<h3>No Entries Yet</h3>
+<p>ROI prompts will appear here after you submit the form above.</p>
+</div>
+`;
+return;
+}
+
+listEl.innerHTML = data.map(item => {
+const total = item.merchandise_cost + item.shipping_cost + item.admin_travel_cost + item.admin_services_cost;
+return `
+<div class="list-item">
+<div class="list-item-content">
+<div class="list-item-title">
+<span class="badge badge-admin">Week Ending: ${item.week_ending}</span>
+Total: $${total.toFixed(2)}
+</div>
+<div class="list-item-subtitle">
+Merchandise: $${item.merchandise_cost.toFixed(2)} | Shipping: $${item.shipping_cost.toFixed(2)} | Travel: $${item.admin_travel_cost.toFixed(2)} | Services: $${item.admin_services_cost.toFixed(2)}
+</div>
+</div>
+</div>
+`;
+}).join('');
+
+} catch (err) {
+listEl.innerHTML = `
+<div class="alert alert-danger">
+<p>Error loading entries: ${err.message}</p>
+</div>
+`;
+}
+}
+
+// Make functions globally accessible
+window.setDefaultRoiDate = setDefaultRoiDate;
+window.calculateRoiTotal = calculateRoiTotal;
+window.submitRoiPrompt = submitRoiPrompt;
+window.resetRoiForm = resetRoiForm;
+window.loadRecentRoi = loadRecentRoi;
 
         // Make functions globally accessible
         window.assignRole = assignRole;
