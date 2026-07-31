@@ -1345,23 +1345,109 @@ Full Name <span class="required">*</span>
 </div>
 
             <!-- ============================================
-                 PAGE 8: LINE ALERTS LOG (Placeholder)
-                 ============================================ -->
-            <div id="page-line-alerts" class="admin-page">
-                <div class="page-header">
-                    <h1>LINE Alerts Log</h1>
-                    <p>Track which LINE alerts were sent successfully, failed, or are pending.</p>
-                </div>
-                <div class="coming-soon">
-                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                    </svg>
-                    <h3>Coming Soon</h3>
-                    <p>This page will display data from the <code>line_alerts_log</code> table.</p>
-                    <p>Shows: Alert type, recipient, timestamp, delivery status, error messages, message content</p>
-                </div>
-            </div>
+PAGE 8: LINE ALERTS LOG
+\============================================ -->
+<div id="page-line-alerts" class="admin-page">
+<div class="page-header">
+<h1>LINE Alerts Log</h1>
+<p>Track which alerts were sent successfully, failed, or are pending.</p>
+</div>
+
+<!-- Error Alert -->
+<div id="alerts-log-error" class="alert alert-danger hidden">
+<span class="alert-icon">⚠</span>
+<div>
+<strong>Error:</strong> <span id="alerts-log-error-message"></span>
+<button type="button" class="alert-close"
+onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×</button>
+</div>
+</div>
+
+<!-- Filters Bar -->
+<div class="card mb-20">
+<div class="card-header">
+<h2>Filters</h2>
+</div>
+<div class="card-body">
+<div class="form-row">
+<!-- Date Range Start -->
+<div class="form-group">
+<label class="form-label" for="alerts-filter-start">Date From</label>
+<input type="date" id="alerts-filter-start" class="form-input">
+</div>
+
+<!-- Date Range End -->
+<div class="form-group">
+<label class="form-label" for="alerts-filter-end">Date To</label>
+<input type="date" id="alerts-filter-end" class="form-input">
+</div>
+
+<!-- Alert Type Filter -->
+<div class="form-group">
+<label class="form-label" for="alerts-filter-type">Alert Type</label>
+<select id="alerts-filter-type" class="form-select">
+<option value="all">All Types</option>
+<option value="daily strategy">Daily Strategy</option>
+<option value="sell prompt">Sell Prompt</option>
+<option value="inventory prompt">Inventory Prompt</option>
+<option value="roi prompt">ROI Prompt</option>
+</select>
+</div>
+
+<!-- Delivery Status Filter -->
+<div class="form-group">
+<label class="form-label" for="alerts-filter-status">Delivery Status</label>
+<select id="alerts-filter-status" class="form-select">
+<option value="all">All Statuses</option>
+<option value="success">Success</option>
+<option value="failed">Failed</option>
+<option value="pending">Pending</option>
+</select>
+</div>
+</div>
+
+<div class="card-footer">
+<button class="btn btn-secondary" onclick="loadAlertsLog()">Apply Filters</button>
+<button class="btn btn-secondary" onclick="resetAlertsFilters()">Clear Filters</button>
+</div>
+</div>
+</div>
+
+<!-- Alerts Table -->
+<div class="card">
+<div class="card-header">
+<h2>Alerts <span id="alerts-count" class="font-sm" style="color: #555; font-weight: normal;"></span></h2>
+<button class="btn btn-sm btn-secondary" onclick="loadAlertsLog()">Refresh</button>
+</div>
+<div class="card-body">
+<div id="alerts-list">
+<div class="loading">
+<p>Loading alerts...</p>
+</div>
+</div>
+
+<div id="alerts-empty" class="empty-state hidden">
+<h3>No Alerts Found</h3>
+<p>No alerts match your current filters, or no alerts have been logged yet.</p>
+</div>
+</div>
+</div>
+
+<!-- Error Details Modal (hidden by default) -->
+<div id="alert-error-modal" class="evidence-modal-overlay hidden" onclick="closeAlertErrorModal(event)">
+<div class="evidence-modal-box" onclick="event.stopPropagation()" style="max-width: 600px;">
+<div class="evidence-modal-header">
+<h3>Error Details</h3>
+<button type="button" class="alert-close" onclick="closeAlertErrorModal()">×</button>
+</div>
+<div class="evidence-modal-body">
+<div id="alert-error-modal-content">
+<p>Loading...</p>
+</div>
+</div>
+</div>
+</div>
+</div>
 
             <!-- ============================================
                  PAGE 9: POPULARITY RANKING (Placeholder)
@@ -1515,6 +1601,8 @@ Full Name <span class="required">*</span>
             loadSearchStrategies();
             // Load brands on page load
             loadBrands();
+            // Load alerts log on page load
+            loadAlertsLog();
             
             // Logout button
             document.getElementById('sidebar-logout-btn').addEventListener('click', logout);
@@ -3157,6 +3245,200 @@ msgEl.textContent = message;
 alertEl.classList.remove('hidden');
 }
 
+        // ============================================
+// SECTION 9: LINE Alerts Log
+// ============================================
+
+// Load alerts with filters
+async function loadAlertsLog() {
+const listEl = document.getElementById('alerts-list');
+const emptyEl = document.getElementById('alerts-empty');
+const countEl = document.getElementById('alerts-count');
+
+if (listEl) {
+listEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Loading alerts...</p></div>';
+}
+
+try {
+let query = supabaseClient
+.from('line_alerts_log')
+.select('*')
+.order('alert_timestamp', { ascending: false })
+.limit(200);
+
+// Apply filters
+const dateStart = document.getElementById('alerts-filter-start').value;
+const dateEnd = document.getElementById('alerts-filter-end').value;
+const typeFilter = document.getElementById('alerts-filter-type').value;
+const statusFilter = document.getElementById('alerts-filter-status').value;
+
+if (dateStart) {
+query = query.gte('alert_timestamp', dateStart + 'T00:00:00');
+}
+if (dateEnd) {
+query = query.lte('alert_timestamp', dateEnd + 'T23:59:59');
+}
+if (typeFilter !== 'all') {
+query = query.eq('alert_type', typeFilter);
+}
+if (statusFilter !== 'all') {
+query = query.eq('delivery_status', statusFilter);
+}
+
+const { data, error } = await query;
+
+if (error) throw error;
+
+if (listEl) listEl.innerHTML = '';
+
+if (!data || data.length === 0) {
+if (emptyEl) emptyEl.classList.remove('hidden');
+if (countEl) countEl.textContent = '(0)';
+return;
+}
+
+if (emptyEl) emptyEl.classList.add('hidden');
+if (countEl) countEl.textContent = `(${data.length})`;
+
+listEl.innerHTML = data.map(alert => {
+const typeBadge = getAlertTypeBadge(alert.alert_type);
+const statusBadge = getDeliveryStatusBadge(alert.delivery_status);
+const timestamp = new Date(alert.alert_timestamp).toLocaleString();
+const recipient = alert.recipient_line_user_id 
+? `<span class="mono">${alert.recipient_line_user_id.substring(0, 12)}...</span>` 
+: '<span style="color: #999;">N/A</span>';
+const errorButton = alert.error_message 
+? `<button class="btn btn-sm btn-danger" onclick="viewAlertError('${alert.id}')">View Error</button>` 
+: '';
+const strategyLink = alert.strategy_id 
+? `<span class="font-sm" style="color: #888;">Strategy: ${alert.strategy_id.substring(0, 8)}...</span>` 
+: '';
+
+return `
+<div class="list-item">
+<div class="list-item-content">
+<div class="list-item-title">
+${typeBadge}
+${statusBadge}
+<span style="font-size: 0.9rem; color: #555;">${timestamp}</span>
+</div>
+<div class="list-item-subtitle">
+Recipient: ${recipient}
+${strategyLink}
+</div>
+</div>
+<div class="list-item-actions">
+${errorButton}
+</div>
+</div>
+`;
+}).join('');
+
+} catch (err) {
+if (listEl) {
+listEl.innerHTML = `
+<div class="alert alert-danger">
+<p>Error loading alerts: ${err.message}</p>
+</div>
+`;
+}
+}
+}
+
+// Get alert type badge
+function getAlertTypeBadge(type) {
+const typeMap = {
+'daily strategy': 'badge-info',
+'sell prompt': 'badge-seller',
+'inventory prompt': 'badge-admin',
+'roi prompt': 'badge-warning'
+};
+const badgeClass = typeMap[type] || 'badge-neutral';
+return `<span class="badge ${badgeClass}">${type}</span>`;
+}
+
+// Get delivery status badge
+function getDeliveryStatusBadge(status) {
+const statusMap = {
+'success': 'badge-success',
+'failed': 'badge-danger',
+'pending': 'badge-pending'
+};
+const badgeClass = statusMap[status] || 'badge-neutral';
+const icon = status === 'success' ? '✓' : status === 'failed' ? '✗' : '⏳';
+return `<span class="badge ${badgeClass}">${icon} ${status}</span>`;
+}
+
+// Reset filters
+function resetAlertsFilters() {
+document.getElementById('alerts-filter-start').value = '';
+document.getElementById('alerts-filter-end').value = '';
+document.getElementById('alerts-filter-type').value = 'all';
+document.getElementById('alerts-filter-status').value = 'all';
+loadAlertsLog();
+}
+
+// View error details in modal
+function viewAlertError(alertId) {
+const modal = document.getElementById('alert-error-modal');
+const content = document.getElementById('alert-error-modal-content');
+
+modal.classList.remove('hidden');
+content.innerHTML = '<p>Loading error details...</p>';
+
+supabaseClient
+.from('line_alerts_log')
+.select('*')
+.eq('id', alertId)
+.single()
+.then(({ data, error }) => {
+if (error || !data) {
+content.innerHTML = '<p>Error loading details.</p>';
+return;
+}
+
+let html = '<div style="margin-bottom: 20px;">';
+html += `<p><strong>Alert Type:</strong> ${data.alert_type}</p>`;
+html += `<p><strong>Timestamp:</strong> ${new Date(data.alert_timestamp).toLocaleString()}</p>`;
+html += `<p><strong>Status:</strong> ${data.delivery_status}</p>`;
+html += `<p><strong>Recipient:</strong> <span class="mono">${data.recipient_line_user_id}</span></p>`;
+if (data.strategy_id) {
+html += `<p><strong>Strategy ID:</strong> <span class="mono">${data.strategy_id}</span></p>`;
+}
+html += '</div>';
+
+if (data.error_message) {
+html += '<h4>Error Message</h4>';
+html += '<pre style="background: var(--card-bg-alt); border: var(--sketch-border-thin); border-radius: 8px; padding: 15px; overflow-x: auto; font-size: 0.85rem; font-family: \'Courier New\', monospace; box-shadow: var(--sketch-shadow-sm);">';
+html += escapeHtml(data.error_message);
+html += '</pre>';
+} else {
+html += '<p>No error message recorded.</p>';
+}
+
+content.innerHTML = html;
+});
+}
+
+// Close error modal
+function closeAlertErrorModal(event) {
+if (event && event.target !== event.currentTarget) return;
+document.getElementById('alert-error-modal').classList.add('hidden');
+}
+
+// Escape HTML to prevent XSS in error messages
+function escapeHtml(text) {
+const div = document.createElement('div');
+div.textContent = text;
+return div.innerHTML;
+}
+
+// Make functions globally accessible
+window.loadAlertsLog = loadAlertsLog;
+window.resetAlertsFilters = resetAlertsFilters;
+window.viewAlertError = viewAlertError;
+window.closeAlertErrorModal = closeAlertErrorModal;
+        
 // Make functions globally accessible
 window.loadBrands = loadBrands;
 window.toggleBrandForm = toggleBrandForm;
