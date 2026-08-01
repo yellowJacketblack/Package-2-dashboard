@@ -1809,4 +1809,102 @@ PAGE 6: EVIDENCE MODAL (unique classes)
     .role-assign-buttons {
         justify-content: center;
     }
+   /* ============================================
+   PAGE 9: POPULARITY RANKING
+   ============================================ */
+
+.pop-date-range-wrapper {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.pop-ma-toggles {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.pop-chart-wrapper {
+    position: relative;
+    height: 400px;
+}
+
+.pop-table-wrapper {
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+}
+
+.pop-card-spacing {
+    margin-top: 20px;
+}
+
+/* Correlation Matrix */
+.corr-matrix {
+    display: grid;
+    gap: 2px;
+    margin: 1rem 0;
+}
+
+.corr-cell {
+    padding: 0.8rem;
+    text-align: center;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.corr-header {
+    background: var(--text-color);
+    color: white;
+    font-weight: bold;
+}
+
+.corr-strong-pos {
+    background: #1a6b1a;
+    color: white;
+}
+
+.corr-mod-pos {
+    background: #5cb85c;
+    color: white;
+}
+
+.corr-weak {
+    background: #f0f0f0;
+    color: var(--text-color);
+}
+
+.corr-mod-neg {
+    background: #d9534f;
+    color: white;
+}
+
+.corr-strong-neg {
+    background: #8b1a1a;
+    color: white;
+}
+
+/* Peak Items */
+.peak-item {
+    border-left: 5px solid var(--warning-color);
+    margin-bottom: 8px;
+}
+
+/* Summary Card Text */
+.pop-card-subtext {
+    color: #666;
+}
+
+.pop-card-warning {
+    color: var(--warning-color);
+    font-weight: bold;
+}
+
+/* No Data Text */
+.pop-no-data-text {
+    color: #666;
+    font-style: italic;
+    padding: 1rem 0;
+}
 }
