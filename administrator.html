@@ -1450,23 +1450,117 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
 </div>
 
             <!-- ============================================
-                 PAGE 9: POPULARITY RANKING (Placeholder)
-                 ============================================ -->
-            <div id="page-popularity-ranking" class="admin-page">
-                <div class="page-header">
-                    <h1>Popularity Ranking</h1>
-                    <p>Google Trends volume over time for each brand.</p>
-                </div>
-                <div class="coming-soon">
-                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="20" x2="12" y2="10"/>
-                        <line x1="18" y1="20" x2="18" y2="4"/>
-                        <line x1="6" y1="20" x2="6" y2="16"/>
-                    </svg>
-                    <h3>Coming Soon</h3>
-                    <p>This report will pull from <code>google_trends_uploads</code> and <code>tfidf_results</code>.</p>
-                </div>
+     PAGE 9: Popularity Ranking
+     ============================================ -->
+<div id="page-popularity-ranking" class="admin-page">
+    <div class="page-header">
+        <h1>Popularity Ranking</h1>
+        <p>Google Trends volume over time for each brand.</p>
+    </div>
+
+    <!-- Loading State -->
+    <div id="pop-loading" class="loading">
+        <div class="loading-spinner"></div>
+        <p>Loading popularity data from The Library...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="pop-error" class="alert alert-danger hidden">
+        <span class="alert-icon">⚠</span>
+        <div style="flex: 1;">
+            <strong>Error:</strong> <span id="pop-error-text"></span>
+            <button class="btn btn-sm btn-secondary" onclick="loadPopularityData()" style="margin-left: 10px;">Retry</button>
+        </div>
+    </div>
+
+    <!-- No Data State -->
+    <div id="pop-no-data" class="empty-state hidden">
+        <h3>No Popularity Data Available</h3>
+        <p>No Google Trends analysis results found. This could mean:</p>
+        <ul style="text-align: left; max-width: 500px; margin: 1rem auto; list-style: disc; padding-left: 40px;">
+            <li>No Google Trends CSVs have been uploaded yet</li>
+            <li>The analysis pipeline hasn't run yet</li>
+            <li>The analysis_results table is empty</li>
+        </ul>
+        <p style="margin-top: 1rem;">Upload Google Trends CSVs via Page 4, then trigger the analysis.</p>
+    </div>
+
+    <!-- Main Content -->
+    <div id="pop-content" class="hidden">
+
+        <!-- Date Range Badge -->
+        <div class="pop-date-range-wrapper">
+            <span class="badge badge-info" id="pop-date-range">Loading...</span>
+        </div>
+
+        <!-- Summary Cards (CAGR per brand) -->
+        <div class="stats-grid" id="pop-summary-cards"></div>
+
+        <!-- Trend Chart with Moving Average Toggle -->
+        <div class="chart-container pop-card-spacing">
+            <div class="chart-title">Search Interest Over Time</div>
+            <div class="pop-ma-toggles">
+                <button class="btn btn-sm btn-secondary" id="pop-ma-none" onclick="popToggleMA('none', this)">Raw Data</button>
+                <button class="btn btn-sm btn-secondary" id="pop-ma-7" onclick="popToggleMA('7day', this)">7-Day MA</button>
+                <button class="btn btn-sm btn-secondary" id="pop-ma-30" onclick="popToggleMA('30day', this)">30-Day MA</button>
             </div>
+            <div class="pop-chart-wrapper">
+                <canvas id="pop-trend-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Descriptive Statistics Table -->
+        <div class="card pop-card-spacing">
+            <div class="card-header">
+                <h2>Descriptive Statistics</h2>
+            </div>
+            <div class="table-container pop-table-wrapper">
+                <table class="data-table" id="pop-stats-table">
+                    <thead>
+                        <tr>
+                            <th>Brand</th>
+                            <th>Data Points</th>
+                            <th>Mean</th>
+                            <th>Median</th>
+                            <th>Std Dev</th>
+                            <th>Min</th>
+                            <th>Max</th>
+                            <th>Range</th>
+                            <th>IQR</th>
+                            <th>CV (%)</th>
+                            <th>Date Range</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pop-stats-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Correlation Matrix -->
+        <div class="card pop-card-spacing">
+            <div class="card-header">
+                <h2>Brand Correlation Matrix</h2>
+            </div>
+            <p class="font-sm" style="color: #666; margin-bottom: 15px;">
+                Pearson correlation between brands' search interest over time. Values range from -1 (opposite trends) to +1 (identical trends).
+            </p>
+            <div id="pop-correlation-matrix"></div>
+            <div id="pop-correlation-interpretations" class="mt-20"></div>
+        </div>
+
+        <!-- Peak Alerts -->
+        <div class="card pop-card-spacing">
+            <div class="card-header">
+                <h2>Peak Interest Alerts</h2>
+            </div>
+            <p class="font-sm" style="color: #666; margin-bottom: 15px;">
+                Dates where search interest spiked more than 2 standard deviations above the mean.
+            </p>
+            <div id="pop-peaks-list"></div>
+        </div>
+
+    </div>
+</div>
 
             <!-- ============================================
                  PAGE 10: PURCHASE KEYWORDS (Placeholder)
@@ -3432,6 +3526,475 @@ const div = document.createElement('div');
 div.textContent = text;
 return div.innerHTML;
 }
+        // ============================================
+// SECTION: Page 9 — Popularity Ranking
+// ============================================
+
+let popChart = null;
+let popChartData = {};
+let popMA7Data = {};
+let popMA30Data = {};
+let popCurrentMA = 'none';
+let popActiveMAButton = null;
+
+// Fetch all popularity analysis results from analysis_results table
+async function fetchPopularityData() {
+    const { data, error } = await supabaseClient
+        .from('analysis_results')
+        .select('*')
+        .like('analysis_type', 'popularity_%')
+        .order('computed_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Group by analysis_type, keeping only most recent per brand
+    const grouped = {};
+    for (const row of data) {
+        const key = row.analysis_type;
+        if (!grouped[key]) {
+            grouped[key] = {};
+        }
+        if (row.brand) {
+            if (!grouped[key][row.brand]) {
+                grouped[key][row.brand] = JSON.parse(row.results);
+            }
+        } else {
+            if (!grouped[key].data) {
+                grouped[key].data = JSON.parse(row.results);
+            }
+        }
+    }
+
+    return grouped;
+}
+
+// Show loading state
+function popShowLoading() {
+    document.getElementById('pop-loading').classList.remove('hidden');
+    document.getElementById('pop-error').classList.add('hidden');
+    document.getElementById('pop-no-data').classList.add('hidden');
+    document.getElementById('pop-content').classList.add('hidden');
+}
+
+// Show error state
+function popShowError(message) {
+    document.getElementById('pop-loading').classList.add('hidden');
+    document.getElementById('pop-error').classList.remove('hidden');
+    document.getElementById('pop-error-text').textContent = message;
+}
+
+// Show no data state
+function popShowNoData() {
+    document.getElementById('pop-loading').classList.add('hidden');
+    document.getElementById('pop-no-data').classList.remove('hidden');
+}
+
+// Show main content
+function popShowContent() {
+    document.getElementById('pop-loading').classList.add('hidden');
+    document.getElementById('pop-content').classList.remove('hidden');
+}
+
+// Render date range badge
+function popRenderDateRange(data) {
+    if (data.popularity_chart_data && data.popularity_chart_data.data) {
+        let minDate = null, maxDate = null;
+        for (const brand of Object.keys(data.popularity_chart_data)) {
+            if (brand === 'data') continue;
+            const brandData = data.popularity_chart_data[brand];
+            if (brandData && brandData.length > 0) {
+                const first = brandData[0].date;
+                const last = brandData[brandData.length - 1].date;
+                if (!minDate || first < minDate) minDate = first;
+                if (!maxDate || last > maxDate) maxDate = last;
+            }
+        }
+        if (minDate && maxDate) {
+            document.getElementById('pop-date-range').textContent = minDate + ' to ' + maxDate;
+        }
+    }
+}
+
+// Render summary cards (CAGR per brand)
+function popRenderSummaryCards(data) {
+    const container = document.getElementById('pop-summary-cards');
+    container.innerHTML = '';
+
+    const cagrData = data.popularity_cagr || {};
+    const trendData = data.popularity_linear_regression || {};
+    const peakData = data.popularity_peak_detection || {};
+
+    const brands = Object.keys(cagrData).filter(k => k !== 'data');
+
+    for (const brand of brands) {
+        const cagr = cagrData[brand] || {};
+        const trend = trendData[brand] || {};
+        const peaks = peakData[brand] || {};
+
+        const card = document.createElement('div');
+        card.className = 'stat-card';
+
+        const cagrValue = cagr.cagr;
+        let cardClass = '';
+        let cagrDisplay = 'N/A';
+
+        if (cagrValue !== null && cagrValue !== undefined) {
+            cardClass = cagrValue > 0 ? 'success' : (cagrValue < 0 ? 'danger' : '');
+            cagrDisplay = (cagrValue > 0 ? '+' : '') + cagrValue + '%';
+        } else if (cagr.linear_growth_pct !== undefined) {
+            cagrDisplay = (cagr.linear_growth_pct > 0 ? '+' : '') + cagr.linear_growth_pct + '% (linear)';
+            cardClass = cagr.linear_growth_pct > 0 ? 'success' : 'danger';
+        }
+
+        if (cardClass) card.classList.add(cardClass);
+
+        const trendText = trend.trend || 'N/A';
+        const trendR2 = trend.r_squared || 'N/A';
+        const peakCount = peaks.peak_count || 0;
+
+        card.innerHTML = `
+            <div class="stat-value">${cagrDisplay}</div>
+            <div class="stat-label">${brand}</div>
+            <div class="font-sm mt-10 pop-card-subtext">
+                Trend: ${trendText} (R² = ${trendR2})
+            </div>
+            ${peakCount > 0 ? `<div class="font-sm mt-10 pop-card-warning">⚠ ${peakCount} peak(s) detected</div>` : ''}
+        `;
+
+        container.appendChild(card);
+    }
+}
+
+// Render trend chart
+function popRenderChart(data) {
+    const ctx = document.getElementById('pop-trend-chart').getContext('2d');
+
+    popChartData = data.popularity_chart_data || {};
+    popMA7Data = data.popularity_moving_avg_7day || {};
+    popMA30Data = data.popularity_moving_avg_30day || {};
+
+    const brands = Object.keys(popChartData).filter(k => k !== 'data');
+
+    const colors = [
+        '#e74c3c', '#3498db', '#2ecc71', '#f39c12',
+        '#9b59b6', '#1abc9c', '#e67e22', '#34495e'
+    ];
+
+    const datasets = [];
+
+    for (let i = 0; i < brands.length; i++) {
+        const brand = brands[i];
+        const chartData = popChartData[brand];
+
+        if (!chartData || chartData.length === 0) continue;
+
+        datasets.push({
+            label: brand,
+            data: chartData.map(point => ({ x: point.date, y: point.value })),
+            borderColor: colors[i % colors.length],
+            backgroundColor: colors[i % colors.length] + '20',
+            borderWidth: 2,
+            pointRadius: 1,
+            pointHoverRadius: 5,
+            tension: 0.3
+        });
+    }
+
+    if (popChart) {
+        popChart.destroy();
+    }
+
+    popChart = new Chart(ctx, {
+        type: 'line',
+        data: { datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) { return context[0].raw.x; },
+                        label: function(context) { return context.dataset.label + ': ' + context.raw.y; }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'month',
+                        displayFormats: { month: 'MMM yyyy' }
+                    },
+                    title: { display: true, text: 'Date' }
+                },
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: { display: true, text: 'Search Interest (0-100)' }
+                }
+            }
+        }
+    });
+
+    // Set raw data button as active
+    const rawBtn = document.getElementById('pop-ma-none');
+    if (rawBtn) {
+        rawBtn.classList.add('active');
+        popActiveMAButton = rawBtn;
+    }
+}
+
+// Toggle moving average view
+function popToggleMA(maType, button) {
+    // Update button states
+    document.querySelectorAll('#pop-content .btn-sm').forEach(btn => btn.classList.remove('active'));
+    button.classList.add('active');
+    popActiveMAButton = button;
+
+    popCurrentMA = maType;
+
+    if (!popChart) return;
+
+    const brands = Object.keys(popChartData).filter(k => k !== 'data');
+    const colors = [
+        '#e74c3c', '#3498db', '#2ecc71', '#f39c12',
+        '#9b59b6', '#1abc9c', '#e67e22', '#34495e'
+    ];
+
+    const datasets = [];
+
+    for (let i = 0; i < brands.length; i++) {
+        const brand = brands[i];
+
+        if (maType === 'none') {
+            const chartData = popChartData[brand];
+            if (!chartData || chartData.length === 0) continue;
+
+            datasets.push({
+                label: brand,
+                data: chartData.map(point => ({ x: point.date, y: point.value })),
+                borderColor: colors[i % colors.length],
+                backgroundColor: colors[i % colors.length] + '20',
+                borderWidth: 2,
+                pointRadius: 1,
+                pointHoverRadius: 5,
+                tension: 0.3
+            });
+        } else {
+            const maData = maType === '7day' ? popMA7Data[brand] : popMA30Data[brand];
+            if (!maData || !maData.moving_avg || maData.moving_avg.length === 0) continue;
+
+            datasets.push({
+                label: brand + ' (' + maType + ')',
+                data: maData.moving_avg.map(point => ({ x: point.date, y: point.moving_avg })),
+                borderColor: colors[i % colors.length],
+                backgroundColor: colors[i % colors.length] + '20',
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                tension: 0.4
+            });
+        }
+    }
+
+    popChart.data.datasets = datasets;
+    popChart.update();
+}
+
+// Render descriptive stats table
+function popRenderStatsTable(data) {
+    const tbody = document.getElementById('pop-stats-tbody');
+    tbody.innerHTML = '';
+
+    const statsData = data.popularity_descriptive_stats || {};
+    const brands = Object.keys(statsData).filter(k => k !== 'data');
+
+    for (const brand of brands) {
+        const stats = statsData[brand];
+        if (!stats) continue;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><strong>${brand}</strong></td>
+            <td>${stats.count}</td>
+            <td>${stats.mean}</td>
+            <td>${stats.median}</td>
+            <td>${stats.std_dev}</td>
+            <td>${stats.min}</td>
+            <td>${stats.max}</td>
+            <td>${stats.range}</td>
+            <td>${stats.iqr}</td>
+            <td>${stats.coefficient_of_variation !== null ? stats.coefficient_of_variation : 'N/A'}</td>
+            <td>${stats.date_start} to ${stats.date_end}</td>
+        `;
+        tbody.appendChild(row);
+    }
+}
+
+// Render correlation matrix
+function popRenderCorrelation(data) {
+    const matrixContainer = document.getElementById('pop-correlation-matrix');
+    const interpContainer = document.getElementById('pop-correlation-interpretations');
+
+    const corrData = data.popularity_correlation;
+    if (!corrData || !corrData.data) {
+        matrixContainer.innerHTML = '<p class="font-sm pop-no-data-text">Insufficient data for correlation analysis (need at least 2 brands with overlapping dates).</p>';
+        interpContainer.innerHTML = '';
+        return;
+    }
+
+    const corr = corrData.data;
+    const brands = corr.brands || [];
+    const matrix = corr.matrix || {};
+
+    if (brands.length < 2) {
+        matrixContainer.innerHTML = '<p class="font-sm pop-no-data-text">Need at least 2 brands for correlation analysis.</p>';
+        return;
+    }
+
+    // Build grid using CSS classes
+    let gridHTML = `<div class="corr-matrix" style="grid-template-columns: 100px repeat(${brands.length}, 1fr);">`;
+
+    // Header row
+    gridHTML += '<div class="corr-cell corr-header"></div>';
+    for (const brand of brands) {
+        gridHTML += `<div class="corr-cell corr-header">${brand}</div>`;
+    }
+
+    // Data rows
+    for (const rowBrand of brands) {
+        gridHTML += `<div class="corr-cell corr-header">${rowBrand}</div>`;
+        for (const colBrand of brands) {
+            let value = null;
+            if (matrix[colBrand] && matrix[colBrand][rowBrand] !== undefined) {
+                value = matrix[colBrand][rowBrand];
+            } else if (matrix[rowBrand] && matrix[rowBrand][colBrand] !== undefined) {
+                value = matrix[rowBrand][colBrand];
+            }
+
+            if (value === null || isNaN(value)) {
+                gridHTML += '<div class="corr-cell corr-weak">N/A</div>';
+            } else {
+                let cellClass = 'corr-weak';
+                if (value > 0.7) cellClass = 'corr-strong-pos';
+                else if (value > 0.3) cellClass = 'corr-mod-pos';
+                else if (value > -0.3) cellClass = 'corr-weak';
+                else if (value > -0.7) cellClass = 'corr-mod-neg';
+                else cellClass = 'corr-strong-neg';
+
+                gridHTML += `<div class="corr-cell ${cellClass}">${value.toFixed(3)}</div>`;
+            }
+        }
+    }
+
+    gridHTML += '</div>';
+    matrixContainer.innerHTML = gridHTML;
+
+    // Render interpretations
+    const interpretations = corr.interpretation || {};
+    let interpHTML = '';
+
+    for (const [pairKey, pairData] of Object.entries(interpretations)) {
+        const [brand1, brand2] = pairKey.split('_vs_');
+        interpHTML += `
+            <div class="list-item">
+                <div class="list-item-content">
+                    <div class="list-item-title">${brand1} vs ${brand2}</div>
+                    <div class="list-item-subtitle">r = ${pairData.correlation} — ${pairData.interpretation}</div>
+                </div>
+            </div>
+        `;
+    }
+
+    interpContainer.innerHTML = interpHTML || '<p class="font-sm pop-no-data-text">No correlation interpretations available.</p>';
+}
+
+// Render peak alerts
+function popRenderPeaks(data) {
+    const container = document.getElementById('pop-peaks-list');
+
+    const peakData = data.popularity_peak_detection || {};
+    const brands = Object.keys(peakData).filter(k => k !== 'data');
+
+    let hasPeaks = false;
+    let html = '';
+
+    for (const brand of brands) {
+        const peaks = peakData[brand] || {};
+        if (!peaks.peaks || peaks.peaks.length === 0) continue;
+
+        hasPeaks = true;
+
+        html += `
+            <div class="pop-card-spacing">
+                <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px;">${brand}</h3>
+                <p class="font-sm pop-card-subtext" style="margin-bottom: 0.5rem;">
+                    Threshold: ${peaks.threshold_value} (mean: ${peaks.mean}, std: ${peaks.std_dev})
+                </p>
+        `;
+
+        for (const peak of peaks.peaks) {
+            html += `
+                <div class="list-item peak-item">
+                    <div class="list-item-content">
+                        <div class="list-item-title">
+                            ${peak.date}
+                            <span class="font-sm pop-card-subtext" style="font-weight: normal;">(z-score: ${peak.z_score})</span>
+                        </div>
+                        <div class="list-item-subtitle">Search interest value: ${peak.value}</div>
+                    </div>
+                    <div class="list-item-actions">
+                        <span class="badge badge-warning">${peak.value}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        html += '</div>';
+    }
+
+    if (!hasPeaks) {
+        container.innerHTML = '<p class="font-sm pop-no-data-text">No significant peaks detected in the current data.</p>';
+    } else {
+        container.innerHTML = html;
+    }
+}
+
+// Main load function
+async function loadPopularityData() {
+    popShowLoading();
+
+    try {
+        const data = await fetchPopularityData();
+
+        const hasData = Object.keys(data).length > 0 &&
+            (data.popularity_chart_data || data.popularity_descriptive_stats);
+
+        if (!hasData) {
+            popShowNoData();
+            return;
+        }
+
+        popRenderDateRange(data);
+        popRenderSummaryCards(data);
+        popRenderChart(data);
+        popRenderStatsTable(data);
+        popRenderCorrelation(data);
+        popRenderPeaks(data);
+
+        popShowContent();
+
+    } catch (error) {
+        console.error('Error loading popularity data:', error);
+        popShowError(error.message || 'Failed to load data from Supabase.');
+    }
+}
+
+// Make functions globally accessible
+window.loadPopularityData = loadPopularityData;
+window.popToggleMA = popToggleMA;
 
 // Make functions globally accessible
 window.loadAlertsLog = loadAlertsLog;
