@@ -1563,24 +1563,109 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
 </div>
 
             <!-- ============================================
-                 PAGE 10: PURCHASE KEYWORDS (Placeholder)
-                 ============================================ -->
-            <div id="page-purchase-keywords" class="admin-page">
-                <div class="page-header">
-                    <h1>Purchase Keywords</h1>
-                    <p>Purchase intent keywords identified by the text analysis pipeline.</p>
+     PAGE 10: PURCHASE KEYWORDS
+     ============================================ -->
+<div id="page-purchase-keywords" class="admin-page">
+    <div class="page-header">
+        <h1>Purchase Keywords</h1>
+        <p>Ranked keywords from TF-IDF analysis and NER extraction with purchase intent classification.</p>
+    </div>
+
+    <!-- Loading State -->
+    <div id="pk-loading" class="loading">
+        <div class="loading-spinner"></div>
+        <p>Loading purchase keywords from The Library...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="pk-error" class="alert alert-danger hidden">
+        <span class="alert-icon">⚠</span>
+        <div style="flex: 1;">
+            <strong>Error:</strong> <span id="pk-error-text"></span>
+            <button class="btn btn-sm btn-secondary" onclick="loadPurchaseKeywords()" style="margin-left: 10px;">Retry</button>
+        </div>
+    </div>
+
+    <!-- No Data State -->
+    <div id="pk-no-data" class="empty-state hidden">
+        <h3>No Purchase Keywords Available</h3>
+        <p>No TF-IDF or NER analysis results found. This could mean:</p>
+        <ul style="text-align: left; max-width: 500px; margin: 1rem auto; list-style: disc; padding-left: 40px;">
+            <li>No inventory prompts have been entered yet</li>
+            <li>The text analysis pipeline hasn't run yet</li>
+            <li>The tfidf_results and ner_results tables are empty</li>
+        </ul>
+        <p style="margin-top: 1rem;">Enter inventory prompts via Page 2, then run the text analysis pipeline.</p>
+    </div>
+
+    <!-- Main Content -->
+    <div id="pk-content" class="hidden">
+
+        <!-- Summary Cards -->
+        <div class="stats-grid" id="pk-summary-cards"></div>
+
+        <!-- Filters -->
+        <div class="card pk-card-spacing">
+            <div class="card-header">
+                <h2>Filters</h2>
+            </div>
+            <div class="card-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="pk-filter-brand">Brand</label>
+                        <input type="text" id="pk-filter-brand" class="form-input" placeholder="All brands">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="pk-filter-intent">Intent Type</label>
+                        <select id="pk-filter-intent" class="form-select">
+                            <option value="all">All Intents</option>
+                            <option value="purchase">Purchase Intent</option>
+                            <option value="comparison">Comparison</option>
+                            <option value="informational">Informational</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="coming-soon">
-                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <path d="M16 10a4 4 0 0 1-8 0"/>
-                    </svg>
-                    <h3>Coming Soon</h3>
-                    <p>This report will pull from <code>tfidf_results</code> and <code>ner_results</code>.</p>
+                <div class="card-footer">
+                    <button class="btn btn-secondary" onclick="loadPurchaseKeywords()">Apply Filters</button>
+                    <button class="btn btn-secondary" onclick="resetPkFilters()">Clear Filters</button>
                 </div>
             </div>
+        </div>
 
+        <!-- Ranked Keywords Table -->
+        <div class="card pk-card-spacing">
+            <div class="card-header">
+                <h2>Ranked Keywords <span id="pk-count" class="font-sm" style="color: #555; font-weight: normal;"></span></h2>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="pk-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Brand</th>
+                            <th>Keyword</th>
+                            <th>TF-IDF Score</th>
+                            <th>Intent</th>
+                            <th>Competitor</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pk-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Top Keyword Per Brand -->
+        <div class="card pk-card-spacing">
+            <div class="card-header">
+                <h2>Top Keyword Per Brand</h2>
+            </div>
+            <div class="card-body">
+                <div id="pk-top-per-brand"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
             <!-- ============================================
                  PAGE 11: ROI ANALYSIS (Placeholder)
                  ============================================ -->
@@ -1697,6 +1782,7 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
             loadBrands();
             // Load alerts log on page load
             loadAlertsLog();
+            loadPurchaseKeywords();
             
             // Logout button
             document.getElementById('sidebar-logout-btn').addEventListener('click', logout);
@@ -3991,7 +4077,202 @@ async function loadPopularityData() {
         popShowError(error.message || 'Failed to load data from Supabase.');
     }
 }
+// ============================================
+// SECTION: Page 10 — Purchase Keywords
+// ============================================
 
+let pkAllKeywords = [];
+
+async function fetchPurchaseKeywordsData() {
+    const { data, error } = await supabaseClient
+        .from('analysis_results')
+        .select('*')
+        .like('analysis_type', 'purchase_keywords_%')
+        .order('computed_at', { ascending: false });
+
+    if (error) throw error;
+
+    const grouped = {};
+    for (const row of data) {
+        const key = row.analysis_type.replace('purchase_keywords_', '');
+        if (!grouped[key]) {
+            grouped[key] = JSON.parse(row.results);
+        }
+    }
+
+    return grouped;
+}
+
+function pkShowLoading() {
+    document.getElementById('pk-loading').classList.remove('hidden');
+    document.getElementById('pk-error').classList.add('hidden');
+    document.getElementById('pk-no-data').classList.add('hidden');
+    document.getElementById('pk-content').classList.add('hidden');
+}
+
+function pkShowError(message) {
+    document.getElementById('pk-loading').classList.add('hidden');
+    document.getElementById('pk-error').classList.remove('hidden');
+    document.getElementById('pk-error-text').textContent = message;
+}
+
+function pkShowNoData() {
+    document.getElementById('pk-loading').classList.add('hidden');
+    document.getElementById('pk-no-data').classList.remove('hidden');
+}
+
+function pkShowContent() {
+    document.getElementById('pk-loading').classList.add('hidden');
+    document.getElementById('pk-content').classList.remove('hidden');
+}
+
+function getIntentBadge(intent) {
+    const intentMap = {
+        'purchase': 'badge-success',
+        'comparison': 'badge-info',
+        'informational': 'badge-neutral'
+    };
+    const badgeClass = intentMap[intent] || 'badge-neutral';
+    return '<span class="badge ' + badgeClass + '">' + intent + '</span>';
+}
+
+function pkRenderSummaryCards(data) {
+    const container = document.getElementById('pk-summary-cards');
+    container.innerHTML = '';
+
+    const summary = data.summary || {};
+
+    const cards = [
+        { label: 'Total Keywords', value: summary.total_keywords || 0, class: '' },
+        { label: 'Purchase Intent', value: summary.purchase_intent_count || 0, class: 'success' },
+        { label: 'Comparison', value: summary.comparison_count || 0, class: 'info' },
+        { label: 'Informational', value: summary.informational_count || 0, class: 'warning' },
+        { label: 'Brands Analyzed', value: summary.brands_analyzed || 0, class: '' },
+        { label: 'With Competitors', value: summary.keywords_with_competitors || 0, class: '' }
+    ];
+
+    for (const card of cards) {
+        const div = document.createElement('div');
+        div.className = 'stat-card';
+        if (card.class) div.classList.add(card.class);
+        div.innerHTML = `
+            <div class="stat-value">${card.value}</div>
+            <div class="stat-label">${card.label}</div>
+        `;
+        container.appendChild(div);
+    }
+}
+
+function pkRenderTable(data) {
+    const tbody = document.getElementById('pk-tbody');
+    const countEl = document.getElementById('pk-count');
+    tbody.innerHTML = '';
+
+    const topData = data.top_keywords_overall || {};
+    let keywords = topData.keywords || [];
+
+    pkAllKeywords = keywords;
+
+    // Apply filters
+    const brandFilter = document.getElementById('pk-filter-brand').value.trim().toLowerCase();
+    const intentFilter = document.getElementById('pk-filter-intent').value;
+
+    let filtered = keywords;
+    if (brandFilter) {
+        filtered = filtered.filter(k => k.brand.toLowerCase().includes(brandFilter));
+    }
+    if (intentFilter !== 'all') {
+        filtered = filtered.filter(k => k.intent === intentFilter);
+    }
+
+    if (countEl) countEl.textContent = '(' + filtered.length + ')';
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px; color: #666;">No keywords match your filters.</td></tr>';
+        return;
+    }
+
+    filtered.forEach((item, idx) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><strong>${idx + 1}</strong></td>
+            <td><span class="badge badge-admin">${item.brand}</span></td>
+            <td>${item.keyword}</td>
+            <td>${item.tfidf_score}</td>
+            <td>${getIntentBadge(item.intent)}</td>
+            <td>${item.competitor ? '<span class="badge badge-seller">' + item.competitor + '</span>' : '<span style="color: #999;">—</span>'}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function pkRenderTopPerBrand(data) {
+    const container = document.getElementById('pk-top-per-brand');
+    container.innerHTML = '';
+
+    const topPerBrand = data.top_keyword_per_brand || {};
+    const brands = Object.keys(topPerBrand);
+
+    if (brands.length === 0) {
+        container.innerHTML = '<p class="font-sm" style="color: #666;">No brand data available.</p>';
+        return;
+    }
+
+    for (const brand of brands) {
+        const kw = topPerBrand[brand];
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.innerHTML = `
+            <div class="list-item-content">
+                <div class="list-item-title">
+                    <span class="badge badge-admin">${brand}</span>
+                    ${kw.keyword}
+                </div>
+                <div class="list-item-subtitle">
+                    TF-IDF: ${kw.tfidf_score} | ${getIntentBadge(kw.intent)}
+                    ${kw.competitor ? ' | Competitor: ' + kw.competitor : ''}
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+    }
+}
+
+function resetPkFilters() {
+    document.getElementById('pk-filter-brand').value = '';
+    document.getElementById('pk-filter-intent').value = 'all';
+    loadPurchaseKeywords();
+}
+
+async function loadPurchaseKeywords() {
+    pkShowLoading();
+
+    try {
+        const data = await fetchPurchaseKeywordsData();
+
+        const hasData = Object.keys(data).length > 0 && data.summary;
+
+        if (!hasData) {
+            pkShowNoData();
+            return;
+        }
+
+        pkRenderSummaryCards(data);
+        pkRenderTable(data);
+        pkRenderTopPerBrand(data);
+
+        pkShowContent();
+
+    } catch (error) {
+        console.error('Error loading purchase keywords:', error);
+        pkShowError(error.message || 'Failed to load data from Supabase.');
+    }
+}
+
+// Make functions globally accessible
+window.loadPurchaseKeywords = loadPurchaseKeywords;
+window.resetPkFilters = resetPkFilters;
+        
 // Make functions globally accessible
 window.loadPopularityData = loadPopularityData;
 window.popToggleMA = popToggleMA;
