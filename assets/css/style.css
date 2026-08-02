@@ -1907,4 +1907,11 @@ PAGE 6: EVIDENCE MODAL (unique classes)
     font-style: italic;
     padding: 1rem 0;
 }
+   /* ============================================
+   PAGE 10: PURCHASE KEYWORDS
+   ============================================ */
+
+.pk-card-spacing {
+    margin-top: 20px;
+}
 }
