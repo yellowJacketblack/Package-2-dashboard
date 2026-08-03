@@ -1914,4 +1914,37 @@ PAGE 6: EVIDENCE MODAL (unique classes)
 .pk-card-spacing {
     margin-top: 20px;
 }
+   /* ============================================
+   UTILITY CLASSES (for Page 11 and viewer/seller pages)
+   ============================================ */
+
+.text-muted {
+    color: #555;
+}
+
+.flex-1 {
+    flex: 1;
+}
+
+.ml-10 {
+    margin-left: 10px;
+}
+
+.mt-1rem {
+    margin-top: 1rem;
+}
+
+/* No-data list styling (for bullet lists in empty states) */
+.info-list {
+    text-align: left;
+    max-width: 500px;
+    margin: 1rem auto;
+    list-style: disc;
+    padding-left: 40px;
+}
+
+/* Card spacing for standalone pages (viewer/seller) */
+.card-mt {
+    margin-top: 20px;
+}
 }
