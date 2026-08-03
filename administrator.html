@@ -1786,24 +1786,207 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
 </div>
 
             <!-- ============================================
-                 PAGE 12: BRAND COMPARISON (Placeholder)
-                 ============================================ -->
-            <div id="page-brand-comparison" class="admin-page">
-                <div class="page-header">
-                    <h1>Brand Comparison</h1>
-                    <p>Brand vs Brand analysis using NER extraction and Jaccard Similarity for brand overlap.</p>
+     PAGE 12: BRAND COMPARISON
+     ============================================ -->
+<div id="page-brand-comparison" class="admin-page">
+    <div class="page-header">
+        <h1>Brand Comparison</h1>
+        <p>Side-by-side brand analysis using TF-IDF importance scores, NER competitor extraction, and Jaccard Similarity for keyword overlap.</p>
+    </div>
+
+    <!-- Loading State -->
+    <div id="bc-loading" class="loading">
+        <div class="loading-spinner"></div>
+        <p>Loading brand comparison data from The Library...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="bc-error" class="alert alert-danger hidden">
+        <span class="alert-icon">⚠</span>
+        <div class="flex-1">
+            <strong>Error:</strong> <span id="bc-error-text"></span>
+            <button class="btn btn-sm btn-secondary ml-10" onclick="loadBrandComparison()">Retry</button>
+        </div>
+    </div>
+
+    <!-- No Data State -->
+    <div id="bc-no-data" class="empty-state hidden">
+        <h3>No Comparison Data Available</h3>
+        <p>No TF-IDF or NER analysis results found. This could mean:</p>
+        <ul class="info-list">
+            <li>No inventory prompts have been entered yet</li>
+            <li>The text analysis pipeline hasn't run yet</li>
+            <li>The tfidf_results and ner_results tables are empty</li>
+        </ul>
+        <p class="mt-1rem">Enter inventory prompts via Page 2, then run the text analysis pipeline.</p>
+    </div>
+
+    <!-- Main Content -->
+    <div id="bc-content" class="hidden">
+
+        <!-- Brand Selector -->
+        <div class="card bc-card-spacing">
+            <div class="card-header">
+                <h2>Select Brands to Compare</h2>
+            </div>
+            <div class="card-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="bc-brand-a">Brand A <span class="required">*</span></label>
+                        <select id="bc-brand-a" class="form-select" onchange="renderBrandComparison()">
+                            <option value="">-- Select Brand --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="bc-brand-b">Brand B <span class="required">*</span></label>
+                        <select id="bc-brand-b" class="form-select" onchange="renderBrandComparison()">
+                            <option value="">-- Select Brand --</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="coming-soon">
-                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18 3a3 3 0 0 0-3 3v12"/>
-                        <path d="M6 3a3 3 0 0 1 3 3v12"/>
-                        <path d="M3 9h6"/>
-                        <path d="M15 9h6"/>
-                    </svg>
-                    <h3>Coming Soon</h3>
-                    <p>This report will pull from <code>ner_results</code> and <code>tfidf_results</code>.</p>
+                <div class="card-footer">
+                    <button class="btn btn-secondary" onclick="resetBrandComparisonSelection()">Reset Selection</button>
+                    <button class="btn btn-submit" onclick="renderBrandComparison()">Generate Comparison</button>
                 </div>
             </div>
+        </div>
+
+        <!-- Jaccard Similarity Score -->
+        <div id="bc-jaccard-section" class="hidden">
+            <div class="stats-grid bc-card-spacing">
+                <div class="stat-card" id="bc-jaccard-card">
+                    <div class="stat-value" id="bc-jaccard-value">—</div>
+                    <div class="stat-label">Jaccard Similarity</div>
+                    <div class="font-sm mt-10 pop-card-subtext" id="bc-jaccard-interpretation">Keyword overlap between brands</div>
+                </div>
+                <div class="stat-card" id="bc-shared-keywords-card">
+                    <div class="stat-value" id="bc-shared-count">0</div>
+                    <div class="stat-label">Shared Keywords</div>
+                </div>
+                <div class="stat-card" id="bc-unique-a-card">
+                    <div class="stat-value" id="bc-unique-a-count">0</div>
+                    <div class="stat-label" id="bc-unique-a-label">Unique to Brand A</div>
+                </div>
+                <div class="stat-card" id="bc-unique-b-card">
+                    <div class="stat-value" id="bc-unique-b-count">0</div>
+                    <div class="stat-label" id="bc-unique-b-label">Unique to Brand B</div>
+                </div>
+            </div>
+
+            <!-- Venn-style Overlap Visualization -->
+            <div class="card bc-card-spacing">
+                <div class="card-header">
+                    <h2>Keyword Overlap Visualization</h2>
+                </div>
+                <div class="card-body">
+                    <div class="bc-venn-container">
+                        <div class="bc-venn-circle bc-venn-a" id="bc-venn-a">
+                            <div class="bc-venn-label" id="bc-venn-label-a">Brand A</div>
+                            <div class="bc-venn-count" id="bc-venn-count-a">0</div>
+                        </div>
+                        <div class="bc-venn-circle bc-venn-b" id="bc-venn-b">
+                            <div class="bc-venn-label" id="bc-venn-label-b">Brand B</div>
+                            <div class="bc-venn-count" id="bc-venn-count-b">0</div>
+                        </div>
+                        <div class="bc-venn-intersection">
+                            <div class="bc-venn-count" id="bc-venn-intersection-count">0</div>
+                            <div class="bc-venn-label-small">Shared</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Side-by-Side TF-IDF Comparison -->
+        <div id="bc-tfidf-section" class="hidden">
+            <div class="card bc-card-spacing">
+                <div class="card-header">
+                    <h2>TF-IDF Keyword Importance — Side by Side</h2>
+                    <span class="font-sm text-muted">Higher scores = more unique/important to that brand</span>
+                </div>
+                <div class="card-body">
+                    <div class="bc-comparison-grid">
+                        <div class="bc-comparison-column">
+                            <h3 class="bc-column-header" id="bc-tfidf-header-a">Brand A</h3>
+                            <div id="bc-tfidf-list-a" class="bc-keyword-list"></div>
+                        </div>
+                        <div class="bc-comparison-column">
+                            <h3 class="bc-column-header" id="bc-tfidf-header-b">Brand B</h3>
+                            <div id="bc-tfidf-list-b" class="bc-keyword-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shared Keywords Detail -->
+        <div id="bc-shared-section" class="hidden">
+            <div class="card bc-card-spacing">
+                <div class="card-header">
+                    <h2>Shared Keywords (Overlap)</h2>
+                </div>
+                <div class="card-body">
+                    <div id="bc-shared-keywords-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NER Competitor Comparison -->
+        <div id="bc-ner-section" class="hidden">
+            <div class="card bc-card-spacing">
+                <div class="card-header">
+                    <h2>Competitor Mentions (NER Extraction)</h2>
+                    <span class="font-sm text-muted">Competitor names extracted from keyword searches</span>
+                </div>
+                <div class="card-body">
+                    <div class="bc-comparison-grid">
+                        <div class="bc-comparison-column">
+                            <h3 class="bc-column-header" id="bc-ner-header-a">Brand A Competitors</h3>
+                            <div id="bc-ner-list-a"></div>
+                        </div>
+                        <div class="bc-comparison-column">
+                            <h3 class="bc-column-header" id="bc-ner-header-b">Brand B Competitors</h3>
+                            <div id="bc-ner-list-b"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Strategy Effectiveness Comparison -->
+        <div id="bc-strategy-section" class="hidden">
+            <div class="card bc-card-spacing">
+                <div class="card-header">
+                    <h2>Strategy Effectiveness by Brand</h2>
+                    <span class="font-sm text-muted">Calls get_strategy_effectiveness_by_brand()</span>
+                </div>
+                <div class="card-body">
+                    <div class="bc-comparison-grid">
+                        <div class="bc-comparison-column">
+                            <h3 class="bc-column-header" id="bc-strategy-header-a">Brand A</h3>
+                            <div id="bc-strategy-stats-a" class="bc-strategy-stats"></div>
+                        </div>
+                        <div class="bc-comparison-column">
+                            <h3 class="bc-column-header" id="bc-strategy-header-b">Brand B</h3>
+                            <div id="bc-strategy-stats-b" class="bc-strategy-stats"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trend Curve Comparison (if Google Trends data exists) -->
+        <div id="bc-trend-section" class="hidden">
+            <div class="chart-container bc-card-spacing">
+                <div class="chart-title">Search Interest Trend Comparison</div>
+                <div class="pop-chart-wrapper">
+                    <canvas id="bc-trend-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
 
             <!-- ============================================
                  PAGE 13: EMERGING VS DECLINING (Placeholder)
@@ -1883,6 +2066,7 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
             // Load alerts log on page load
             loadAlertsLog();
             loadPurchaseKeywords();
+            loadBrandComparison();
             
             // Logout button
             document.getElementById('sidebar-logout-btn').addEventListener('click', logout);
@@ -4367,6 +4551,531 @@ async function loadPurchaseKeywords() {
         console.error('Error loading purchase keywords:', error);
         pkShowError(error.message || 'Failed to load data from Supabase.');
     }
+    // ============================================
+// SECTION: Page 12 — Brand Comparison
+// ============================================
+
+let bcTfidfData = {};
+let bcNerData = {};
+let bcStrategyData = {};
+let bcTrendData = {};
+let bcAvailableBrands = [];
+let bcTrendChart = null;
+
+// Fetch all brand comparison data from analysis_results
+async function fetchBrandComparisonData() {
+    const { data, error } = await supabaseClient
+        .from('analysis_results')
+        .select('*')
+        .in('analysis_type', [
+            'brand_comparison_tfidf',
+            'brand_comparison_ner',
+            'brand_comparison_strategy',
+            'brand_comparison_trends'
+        ])
+        .order('computed_at', { ascending: false });
+
+    if (error) throw error;
+
+    const grouped = {};
+    for (const row of data) {
+        const key = row.analysis_type;
+        if (!grouped[key]) {
+            grouped[key] = JSON.parse(row.results);
+        }
+    }
+
+    return grouped;
+}
+
+// Show/hide state functions
+function bcShowLoading() {
+    document.getElementById('bc-loading').classList.remove('hidden');
+    document.getElementById('bc-error').classList.add('hidden');
+    document.getElementById('bc-no-data').classList.add('hidden');
+    document.getElementById('bc-content').classList.add('hidden');
+}
+
+function bcShowError(message) {
+    document.getElementById('bc-loading').classList.add('hidden');
+    document.getElementById('bc-error').classList.remove('hidden');
+    document.getElementById('bc-error-text').textContent = message;
+}
+
+function bcShowNoData() {
+    document.getElementById('bc-loading').classList.add('hidden');
+    document.getElementById('bc-no-data').classList.remove('hidden');
+}
+
+function bcShowContent() {
+    document.getElementById('bc-loading').classList.add('hidden');
+    document.getElementById('bc-content').classList.remove('hidden');
+}
+
+// Populate brand dropdowns
+function bcPopulateBrandDropdowns() {
+    const selectA = document.getElementById('bc-brand-a');
+    const selectB = document.getElementById('bc-brand-b');
+
+    // Clear existing options (keep placeholder)
+    selectA.innerHTML = '<option value="">-- Select Brand --</option>';
+    selectB.innerHTML = '<option value="">-- Select Brand --</option>';
+
+    for (const brand of bcAvailableBrands) {
+        const optA = document.createElement('option');
+        optA.value = brand;
+        optA.textContent = brand;
+        selectA.appendChild(optA);
+
+        const optB = document.createElement('option');
+        optB.value = brand;
+        optB.textContent = brand;
+        selectB.appendChild(optB);
+    }
+}
+
+// Calculate Jaccard Similarity between two keyword sets
+function calculateJaccardSimilarity(setA, setB) {
+    const normalizedA = new Set(setA.map(k => k.toLowerCase().trim()));
+    const normalizedB = new Set(setB.map(k => k.toLowerCase().trim()));
+
+    const intersection = new Set([...normalizedA].filter(x => normalizedB.has(x)));
+    const union = new Set([...normalizedA, ...normalizedB]);
+
+    if (union.size === 0) return 0;
+
+    return intersection.size / union.size;
+}
+
+// Get shared and unique keywords
+function getKeywordOverlap(keywordsA, keywordsB) {
+    const normalizedA = keywordsA.map(k => ({ original: k, normalized: k.toLowerCase().trim() }));
+    const normalizedB = keywordsB.map(k => ({ original: k, normalized: k.toLowerCase().trim() }));
+
+    const setA = new Set(normalizedA.map(k => k.normalized));
+    const setB = new Set(normalizedB.map(k => k.normalized));
+
+    const shared = [...setA].filter(x => setB.has(x));
+    const uniqueA = [...setA].filter(x => !setB.has(x));
+    const uniqueB = [...setB].filter(x => !setA.has(x));
+
+    return {
+        shared: shared,
+        uniqueA: uniqueA,
+        uniqueB: uniqueB,
+        sharedOriginals: normalizedA.filter(k => setB.has(k.normalized)).map(k => k.original),
+        uniqueAOriginals: normalizedA.filter(k => !setB.has(k.normalized)).map(k => k.original),
+        uniqueBOriginals: normalizedB.filter(k => !setA.has(k.normalized)).map(k => k.original)
+    };
+}
+
+// Render Jaccard similarity section
+function bcRenderJaccard(brandA, brandB, keywordsA, keywordsB) {
+    const section = document.getElementById('bc-jaccard-section');
+    section.classList.remove('hidden');
+
+    const overlap = getKeywordOverlap(keywordsA, keywordsB);
+    const jaccard = calculateJaccardSimilarity(keywordsA, keywordsB);
+    const jaccardPct = (jaccard * 100).toFixed(1);
+
+    // Jaccard value
+    document.getElementById('bc-jaccard-value').textContent = jaccardPct + '%';
+
+    // Interpretation
+    let interpretation = '';
+    let cardClass = '';
+    if (jaccard >= 0.7) {
+        interpretation = 'Very high overlap — brands target similar search terms';
+        cardClass = 'danger';
+    } else if (jaccard >= 0.4) {
+        interpretation = 'Moderate overlap — some shared keyword territory';
+        cardClass = 'warning';
+    } else if (jaccard >= 0.2) {
+        interpretation = 'Low overlap — mostly distinct keyword strategies';
+        cardClass = 'info';
+    } else {
+        interpretation = 'Minimal overlap — brands occupy different search spaces';
+        cardClass = 'success';
+    }
+
+    const jaccardCard = document.getElementById('bc-jaccard-card');
+    jaccardCard.className = 'stat-card ' + cardClass;
+
+    document.getElementById('bc-jaccard-interpretation').textContent = interpretation;
+
+    // Counts
+    document.getElementById('bc-shared-count').textContent = overlap.shared.length;
+    document.getElementById('bc-unique-a-count').textContent = overlap.uniqueA.length;
+    document.getElementById('bc-unique-b-count').textContent = overlap.uniqueB.length;
+
+    document.getElementById('bc-unique-a-label').textContent = 'Unique to ' + brandA;
+    document.getElementById('bc-unique-b-label').textContent = 'Unique to ' + brandB;
+
+    // Venn visualization
+    document.getElementById('bc-venn-label-a').textContent = brandA;
+    document.getElementById('bc-venn-label-b').textContent = brandB;
+    document.getElementById('bc-venn-count-a').textContent = overlap.uniqueA.length;
+    document.getElementById('bc-venn-count-b').textContent = overlap.uniqueB.length;
+    document.getElementById('bc-venn-intersection-count').textContent = overlap.shared.length;
+}
+
+// Render TF-IDF side-by-side
+function bcRenderTfidf(brandA, brandB) {
+    const section = document.getElementById('bc-tfidf-section');
+    section.classList.remove('hidden');
+
+    document.getElementById('bc-tfidf-header-a').textContent = brandA;
+    document.getElementById('bc-tfidf-header-b').textContent = brandB;
+
+    const listA = document.getElementById('bc-tfidf-list-a');
+    const listB = document.getElementById('bc-tfidf-list-b');
+
+    const tfidfA = bcTfidfData[brandA] || [];
+    const tfidfB = bcTfidfData[brandB] || [];
+
+    listA.innerHTML = bcFormatTfidfList(tfidfA, brandA);
+    listB.innerHTML = bcFormatTfidfList(tfidfB, brandB);
+}
+
+// Format TF-IDF keyword list
+function bcFormatTfidfList(keywords, brand) {
+    if (!keywords || keywords.length === 0) {
+        return '<p class="font-sm pop-no-data-text">No TF-IDF data for ' + brand + '.</p>';
+    }
+
+    // Sort by score descending
+    const sorted = [...keywords].sort((a, b) => b.tfidf_score - a.tfidf_score);
+
+    return sorted.slice(0, 15).map((item, idx) => {
+        const score = parseFloat(item.tfidf_score).toFixed(4);
+        const barWidth = Math.min(100, (item.tfidf_score / sorted[0].tfidf_score) * 100);
+        return `
+            <div class="bc-keyword-item">
+                <div class="bc-keyword-rank">${idx + 1}</div>
+                <div class="bc-keyword-content">
+                    <div class="bc-keyword-text">${item.keyword}</div>
+                    <div class="bc-keyword-bar">
+                        <div class="bc-keyword-bar-fill" style="width: ${barWidth}%;"></div>
+                    </div>
+                </div>
+                <div class="bc-keyword-score">${score}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Render shared keywords
+function bcRenderSharedKeywords(keywordsA, keywordsB) {
+    const section = document.getElementById('bc-shared-section');
+    const overlap = getKeywordOverlap(keywordsA, keywordsB);
+
+    if (overlap.shared.length === 0) {
+        section.classList.add('hidden');
+        return;
+    }
+
+    section.classList.remove('hidden');
+
+    const container = document.getElementById('bc-shared-keywords-list');
+    container.innerHTML = overlap.shared.map(kw => `
+        <div class="list-item">
+            <div class="list-item-content">
+                <div class="list-item-title">
+                    <span class="badge badge-info">SHARED</span>
+                    ${kw}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Render NER competitor comparison
+function bcRenderNer(brandA, brandB) {
+    const section = document.getElementById('bc-ner-section');
+    section.classList.remove('hidden');
+
+    document.getElementById('bc-ner-header-a').textContent = brandA + ' Competitors';
+    document.getElementById('bc-ner-header-b').textContent = brandB + ' Competitors';
+
+    const listA = document.getElementById('bc-ner-list-a');
+    const listB = document.getElementById('bc-ner-list-b');
+
+    const nerA = bcNerData[brandA] || [];
+    const nerB = bcNerData[brandB] || [];
+
+    listA.innerHTML = bcFormatNerList(nerA, brandA);
+    listB.innerHTML = bcFormatNerList(nerB, brandB);
+}
+
+// Format NER competitor list
+function bcFormatNerList(competitors, brand) {
+    if (!competitors || competitors.length === 0) {
+        return '<p class="font-sm pop-no-data-text">No competitor data extracted for ' + brand + '.</p>';
+    }
+
+    // Aggregate by competitor name
+    const aggregated = {};
+    for (const item of competitors) {
+        const name = item.competitor || item.entity;
+        if (!name) continue;
+        if (!aggregated[name]) {
+            aggregated[name] = { name: name, count: 0, keywords: [] };
+        }
+        aggregated[name].count++;
+        if (item.keyword && !aggregated[name].keywords.includes(item.keyword)) {
+            aggregated[name].keywords.push(item.keyword);
+        }
+    }
+
+    const sorted = Object.values(aggregated).sort((a, b) => b.count - a.count);
+
+    return sorted.map(comp => `
+        <div class="bc-competitor-item">
+            <div class="bc-competitor-name">
+                <span class="badge badge-seller">${comp.name}</span>
+            </div>
+            <div class="bc-competitor-count">${comp.count} mention${comp.count !== 1 ? 's' : ''}</div>
+            ${comp.keywords.length > 0 ? `
+                <div class="bc-competitor-keywords font-sm">
+                    Found in: ${comp.keywords.slice(0, 3).join(', ')}${comp.keywords.length > 3 ? '...' : ''}
+                </div>
+            ` : ''}
+        </div>
+    `).join('');
+}
+
+// Render strategy effectiveness comparison
+function bcRenderStrategy(brandA, brandB) {
+    const section = document.getElementById('bc-strategy-section');
+    section.classList.remove('hidden');
+
+    document.getElementById('bc-strategy-header-a').textContent = brandA;
+    document.getElementById('bc-strategy-header-b').textContent = brandB;
+
+    const statsA = bcStrategyData[brandA] || {};
+    const statsB = bcStrategyData[brandB] || {};
+
+    document.getElementById('bc-strategy-stats-a').innerHTML = bcFormatStrategyStats(statsA, brandA);
+    document.getElementById('bc-strategy-stats-b').innerHTML = bcFormatStrategyStats(statsB, brandB);
+}
+
+// Format strategy effectiveness stats
+function bcFormatStrategyStats(stats, brand) {
+    if (!stats || Object.keys(stats).length === 0) {
+        return '<p class="font-sm pop-no-data-text">No strategy data for ' + brand + '.</p>';
+    }
+
+    const total = stats.total_strategies || 0;
+    const actedOn = stats.acted_on_count || 0;
+    const actionRate = total > 0 ? ((actedOn / total) * 100).toFixed(1) : '0.0';
+    const inventoryResult = stats.inventory_acquisitions || 0;
+    const salesResult = stats.actual_sales || 0;
+    const revenue = stats.total_revenue || 0;
+    const avgGap = stats.avg_time_gap_days || 'N/A';
+
+    return `
+        <div class="bc-strategy-stat-row">
+            <span class="bc-strategy-label">Total Strategies</span>
+            <span class="bc-strategy-value">${total}</span>
+        </div>
+        <div class="bc-strategy-stat-row">
+            <span class="bc-strategy-label">Acted On</span>
+            <span class="bc-strategy-value text-success">${actedOn}</span>
+        </div>
+        <div class="bc-strategy-stat-row">
+            <span class="bc-strategy-label">Action Rate</span>
+            <span class="bc-strategy-value">${actionRate}%</span>
+        </div>
+        <div class="bc-strategy-stat-row">
+            <span class="bc-strategy-label">Inventory Acquisitions</span>
+            <span class="bc-strategy-value">${inventoryResult}</span>
+        </div>
+        <div class="bc-strategy-stat-row">
+            <span class="bc-strategy-label">Actual Sales</span>
+            <span class="bc-strategy-value">${salesResult}</span>
+        </div>
+        <div class="bc-strategy-stat-row">
+            <span class="bc-strategy-label">Total Revenue</span>
+            <span class="bc-strategy-value">$${parseFloat(revenue).toFixed(2)}</span>
+        </div>
+        <div class="bc-strategy-stat-row">
+            <span class="bc-strategy-label">Avg Time Gap (days)</span>
+            <span class="bc-strategy-value">${avgGap}</span>
+        </div>
+    `;
+}
+
+// Render trend comparison chart
+function bcRenderTrendChart(brandA, brandB) {
+    const trendA = bcTrendData[brandA];
+    const trendB = bcTrendData[brandB];
+
+    if (!trendA && !trendB) {
+        document.getElementById('bc-trend-section').classList.add('hidden');
+        return;
+    }
+
+    document.getElementById('bc-trend-section').classList.remove('hidden');
+
+    const ctx = document.getElementById('bc-trend-chart').getContext('2d');
+    const datasets = [];
+
+    const colors = ['#e74c3c', '#3498db'];
+
+    if (trendA && trendA.length > 0) {
+        datasets.push({
+            label: brandA,
+            data: trendA.map(point => ({ x: point.date, y: point.value })),
+            borderColor: colors[0],
+            backgroundColor: colors[0] + '20',
+            borderWidth: 2,
+            pointRadius: 1,
+            pointHoverRadius: 5,
+            tension: 0.3
+        });
+    }
+
+    if (trendB && trendB.length > 0) {
+        datasets.push({
+            label: brandB,
+            data: trendB.map(point => ({ x: point.date, y: point.value })),
+            borderColor: colors[1],
+            backgroundColor: colors[1] + '20',
+            borderWidth: 2,
+            pointRadius: 1,
+            pointHoverRadius: 5,
+            tension: 0.3
+        });
+    }
+
+    if (bcTrendChart) {
+        bcTrendChart.destroy();
+    }
+
+    bcTrendChart = new Chart(ctx, {
+        type: 'line',
+        data: { datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) { return context[0].raw.x; },
+                        label: function(context) { return context.dataset.label + ': ' + context.raw.y; }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: { unit: 'month', displayFormats: { month: 'MMM yyyy' } },
+                    title: { display: true, text: 'Date' }
+                },
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: { display: true, text: 'Search Interest (0-100)' }
+                }
+            }
+        }
+    });
+}
+
+// Main render function — called when brands are selected
+function renderBrandComparison() {
+    const brandA = document.getElementById('bc-brand-a').value;
+    const brandB = document.getElementById('bc-brand-b').value;
+
+    if (!brandA || !brandB) {
+        // Hide all comparison sections
+        document.getElementById('bc-jaccard-section').classList.add('hidden');
+        document.getElementById('bc-tfidf-section').classList.add('hidden');
+        document.getElementById('bc-shared-section').classList.add('hidden');
+        document.getElementById('bc-ner-section').classList.add('hidden');
+        document.getElementById('bc-strategy-section').classList.add('hidden');
+        document.getElementById('bc-trend-section').classList.add('hidden');
+        return;
+    }
+
+    if (brandA === brandB) {
+        alert('Please select two different brands to compare.');
+        return;
+    }
+
+    // Extract keywords for Jaccard
+    const tfidfA = bcTfidfData[brandA] || [];
+    const tfidfB = bcTfidfData[brandB] || [];
+    const keywordsA = tfidfA.map(k => k.keyword);
+    const keywordsB = tfidfB.map(k => k.keyword);
+
+    // Render all sections
+    bcRenderJaccard(brandA, brandB, keywordsA, keywordsB);
+    bcRenderTfidf(brandA, brandB);
+    bcRenderSharedKeywords(keywordsA, keywordsB);
+    bcRenderNer(brandA, brandB);
+    bcRenderStrategy(brandA, brandB);
+    bcRenderTrendChart(brandA, brandB);
+}
+
+// Reset brand selection
+function resetBrandComparisonSelection() {
+    document.getElementById('bc-brand-a').value = '';
+    document.getElementById('bc-brand-b').value = '';
+    renderBrandComparison();
+}
+
+// Main load function
+async function loadBrandComparison() {
+    bcShowLoading();
+
+    try {
+        const data = await fetchBrandComparisonData();
+
+        // Parse data into brand-keyed structures
+        bcTfidfData = data.brand_comparison_tfidf || {};
+        bcNerData = data.brand_comparison_ner || {};
+        bcStrategyData = data.brand_comparison_strategy || {};
+        bcTrendData = data.brand_comparison_trends || {};
+
+        // Collect all available brands
+        const brandSet = new Set();
+        for (const brand of Object.keys(bcTfidfData)) brandSet.add(brand);
+        for (const brand of Object.keys(bcNerData)) brandSet.add(brand);
+        for (const brand of Object.keys(bcStrategyData)) brandSet.add(brand);
+        for (const brand of Object.keys(bcTrendData)) brandSet.add(brand);
+
+        bcAvailableBrands = [...brandSet].sort();
+
+        if (bcAvailableBrands.length < 2) {
+            bcShowNoData();
+            return;
+        }
+
+        // Populate dropdowns
+        bcPopulateBrandDropdowns();
+
+        // Auto-select first two brands
+        if (bcAvailableBrands.length >= 2) {
+            document.getElementById('bc-brand-a').value = bcAvailableBrands[0];
+            document.getElementById('bc-brand-b').value = bcAvailableBrands[1];
+            renderBrandComparison();
+        }
+
+        bcShowContent();
+
+    } catch (error) {
+        console.error('Error loading brand comparison:', error);
+        bcShowError(error.message || 'Failed to load data from Supabase.');
+    }
+}
+
+// Make functions globally accessible
+window.loadBrandComparison = loadBrandComparison;
+window.renderBrandComparison = renderBrandComparison;
+window.resetBrandComparisonSelection = resetBrandComparisonSelection;
 }
 
 // Make functions globally accessible
