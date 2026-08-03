@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROI Analysis — GIRL, the Butler</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="background-pattern"></div>
+
+    <div class="page-container">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <a href="viewer.html" class="navbar-brand">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+                GIRL, the Butler
+            </a>
+            <div class="navbar-links">
+                <a href="viewer.html" class="navbar-link">Dashboard</a>
+                <a href="roi-analysis.html" class="navbar-link active">ROI Analysis</a>
+                <a href="popularity-ranking.html" class="navbar-link">Popularity</a>
+                <a href="index.html" class="navbar-link logout">Logout</a>
+            </div>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>ROI Analysis</h1>
+            <p>Friday Financial Report — strategy effectiveness and financial impact analysis.</p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="fr-loading" class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading Friday Financial Report from The Library...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="fr-error" class="alert alert-danger hidden">
+            <span class="alert-icon">⚠</span>
+            <div class="flex-1">
+                <strong>Error:</strong> <span id="fr-error-text"></span>
+                <button class="btn btn-sm btn-secondary ml-10" onclick="loadFridayReportViewer()">Retry</button>
+            </div>
+        </div>
+
+        <!-- No Data State -->
+        <div id="fr-no-data" class="empty-state hidden">
+            <h3>No Friday Report Available</h3>
+            <p>No Friday ROI analysis results found. The administrator has not generated a report yet.</p>
+        </div>
+
+        <!-- Main Content -->
+        <div id="fr-content" class="hidden">
+
+            <!-- Summary Cards -->
+            <div class="stats-grid fr-card-spacing" id="fr-summary-cards"></div>
+
+            <!-- Dynamic Narrative -->
+            <div class="card fr-card-spacing">
+                <div class="card-header">
+                    <h2>Who Benefits from ROI?</h2>
+                </div>
+                <div class="card-body">
+                    <div id="fr-narrative-text" class="fr-narrative"></div>
+                    <div id="fr-narrative-breakdown" class="fr-breakdown-grid"></div>
+                </div>
+            </div>
+
+            <!-- Category 1: Direct Action Evidence -->
+            <div class="card fr-card-spacing">
+                <div class="card-header">
+                    <h2>Category 1: Direct Action Evidence</h2>
+                    <span class="font-sm text-muted">Did the seller act on GIRL's suggestions?</span>
+                </div>
+                <div class="card-body" id="fr-category-1"></div>
+            </div>
+
+            <!-- Category 2: Strategy Effectiveness -->
+            <div class="card fr-card-spacing">
+                <div class="card-header">
+                    <h2>Category 2: Strategy Effectiveness</h2>
+                    <span class="font-sm text-muted">Which strategies worked best?</span>
+                </div>
+                <div class="card-body" id="fr-category-2"></div>
+            </div>
+
+            <!-- Category 3: Time Gap Analysis -->
+            <div class="card fr-card-spacing">
+                <div class="card-header">
+                    <h2>Category 3: Time Gap Analysis</h2>
+                    <span class="font-sm text-muted">How quickly did the seller act?</span>
+                </div>
+                <div class="card-body" id="fr-category-3"></div>
+            </div>
+
+            <!-- Category 4: ROI & Financial Impact -->
+            <div class="card fr-card-spacing">
+                <div class="card-header">
+                    <h2>Category 4: ROI & Financial Impact</h2>
+                    <span class="font-sm text-muted">Did acting on strategies improve profitability?</span>
+                </div>
+                <div class="card-body" id="fr-category-4"></div>
+            </div>
+
+        </div>
+
+        <footer class="footer">
+            <p>&copy; 2026 GIRL, the Butler</p>
+        </footer>
+    </div>
+
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script src="assets/js/timezone.js"></script>
+    <script>
+        // ============================================
+        // Viewer ROI Analysis Page
+        // ============================================
+
+        async function fetchFridayReportViewer(weekEnding) {
+            const { data, error } = await supabaseClient
+                .from('analysis_results')
+                .select('*')
+                .like('analysis_type', 'friday_roi_%')
+                .eq('date_range', weekEnding);
+
+            if (error) throw error;
+
+            const grouped = {};
+            for (const row of data) {
+                const key = row.analysis_type.replace('friday_roi_', '');
+                if (!grouped[key]) {
+                    grouped[key] = JSON.parse(row.results);
+                }
+            }
+            return grouped;
+        }
+
+        async function fetchMostRecentWeek() {
+            const { data, error } = await supabaseClient
+                .from('analysis_results')
+                .select('date_range')
+                .like('analysis_type', 'friday_roi_summary')
+                .order('date_range', { ascending: false })
+                .limit(1);
+
+            if (error) throw error;
+            return data && data.length > 0 ? data[0].date_range : null;
+        }
+
+        function frShowLoading() {
+            document.getElementById('fr-loading').classList.remove('hidden');
+            document.getElementById('fr-error').classList.add('hidden');
+            document.getElementById('fr-no-data').classList.add('hidden');
+            document.getElementById('fr-content').classList.add('hidden');
+        }
+
+        function frShowError(message) {
+            document.getElementById('fr-loading').classList.add('hidden');
+            document.getElementById('fr-error').classList.remove('hidden');
+            document.getElementById('fr-error-text').textContent = message;
+        }
+
+        function frShowNoData() {
+            document.getElementById('fr-loading').classList.add('hidden');
+            document.getElementById('fr-no-data').classList.remove('hidden');
+        }
+
+        function frShowContent() {
+            document.getElementById('fr-loading').classList.add('hidden');
+            document.getElementById('fr-content').classList.remove('hidden');
+        }
+
+        function frGetAnswerBadge(answer) {
+            if (!answer) return '<span class="badge badge-neutral">N/A</span>';
+            const lower = answer.toLowerCase();
+            if (lower.startsWith('yes')) return '<span class="badge badge-success">✓ ' + answer + '</span>';
+            if (lower.startsWith('no')) return '<span class="badge badge-danger">✗ ' + answer + '</span>';
+            return '<span class="badge badge-info">' + answer + '</span>';
+        }
+
+        function frRenderSummaryCards(data) {
+            const container = document.getElementById('fr-summary-cards');
+            container.innerHTML = '';
+
+            const summary = data.summary || {};
+            const cards = [
+                { label: 'Total Revenue', value: '$' + (summary.total_revenue || 0).toFixed(2), class: 'success' },
+                { label: 'Total Costs', value: '$' + (summary.total_costs || 0).toFixed(2), class: 'danger' },
+                { label: 'Net Profit', value: '$' + (summary.net_profit || 0).toFixed(2), class: (summary.net_profit || 0) >= 0 ? 'success' : 'danger' },
+                { label: 'ROI %', value: summary.roi_percentage !== null ? summary.roi_percentage + '%' : 'N/A', class: summary.roi_percentage >= 0 ? 'success' : 'danger' },
+                { label: 'Total Sells', value: summary.total_sells || 0, class: '' },
+                { label: 'Inventory Entries', value: summary.total_inventory_entries || 0, class: '' },
+                { label: 'Strategies Acted On', value: (summary.strategies_acted_on || 0) + ' / ' + (summary.total_strategies || 0), class: '' },
+                { label: 'Action Rate', value: (summary.action_rate || 0) + '%', class: (summary.action_rate || 0) >= 50 ? 'success' : 'warning' }
+            ];
+
+            for (const card of cards) {
+                const div = document.createElement('div');
+                div.className = 'stat-card';
+                if (card.class) div.classList.add(card.class);
+                div.innerHTML = '<div class="stat-value">' + card.value + '</div><div class="stat-label">' + card.label + '</div>';
+                container.appendChild(div);
+            }
+        }
+
+        function frRenderNarrative(data) {
+            const narrative = data.narrative || {};
+            const textEl = document.getElementById('fr-narrative-text');
+            const breakdownEl = document.getElementById('fr-narrative-breakdown');
+
+            textEl.innerHTML = '<p>' + (narrative.narrative || 'No narrative available.') + '</p>';
+
+            const breakdown = [
+                { label: 'Seller Revenue', value: '$' + (narrative.total_revenue || 0).toFixed(2), class: 'success' },
+                { label: 'Seller Costs', value: '$' + (narrative.seller_costs || 0).toFixed(2), class: 'danger' },
+                { label: 'Seller Net Profit', value: '$' + (narrative.seller_net_profit || 0).toFixed(2), class: (narrative.seller_net_profit || 0) >= 0 ? 'success' : 'danger' },
+                { label: 'Admin Earnings', value: '$' + (narrative.admin_earnings || 0).toFixed(2), class: 'info' }
+            ];
+
+            breakdownEl.innerHTML = breakdown.map(b =>
+                '<div class="fr-breakdown-item"><div class="fr-breakdown-label">' + b.label + '</div><div class="fr-breakdown-value ' + b.class + '">' + b.value + '</div></div>'
+            ).join('');
+        }
+
+        function frRenderCategory(categoryData, containerId) {
+            const container = document.getElementById(containerId);
+            if (!categoryData || !categoryData.questions) {
+                container.innerHTML = '<p class="font-sm text-muted">No data available for this category.</p>';
+                return;
+            }
+
+            container.innerHTML = categoryData.questions.map(q => {
+                let evidenceHtml = '';
+                if (q.evidence) {
+                    if (Array.isArray(q.evidence) && q.evidence.length > 0) {
+                        evidenceHtml = '<div class="fr-evidence"><strong>Evidence:</strong><ul>';
+                        q.evidence.forEach(e => {
+                            if (typeof e === 'object') {
+                                evidenceHtml += '<li>' + Object.entries(e).map(([k, v]) => k + ': ' + v).join(', ') + '</li>';
+                            } else {
+                                evidenceHtml += '<li>' + e + '</li>';
+                            }
+                        });
+                        evidenceHtml += '</ul></div>';
+                    } else if (typeof q.evidence === 'object' && Object.keys(q.evidence).length > 0) {
+                        evidenceHtml = '<div class="fr-evidence"><strong>Evidence:</strong><ul>';
+                        for (const [key, value] of Object.entries(q.evidence)) {
+                            if (Array.isArray(value)) {
+                                evidenceHtml += '<li>' + key + ': ' + value.length + ' items</li>';
+                            } else if (typeof value === 'object') {
+                                evidenceHtml += '<li>' + key + ': ' + JSON.stringify(value) + '</li>';
+                            } else {
+                                evidenceHtml += '<li>' + key + ': ' + value + '</li>';
+                            }
+                        }
+                        evidenceHtml += '</ul></div>';
+                    }
+                }
+
+                return '<div class="fr-question">' +
+                    '<div class="fr-question-header">' +
+                    '<span class="fr-question-number">Q' + q.id + '</span>' +
+                    '<span class="fr-question-text">' + q.question + '</span>' +
+                    '</div>' +
+                    '<div class="fr-question-answer">' + frGetAnswerBadge(q.answer) + '</div>' +
+                    '<div class="fr-question-details">' + (q.details || '') + '</div>' +
+                    evidenceHtml +
+                    '</div>';
+            }).join('');
+        }
+
+        async function loadFridayReportViewer() {
+            frShowLoading();
+
+            try {
+                // Check auth - viewers and sellers can see this page
+                await checkRoleAccess(['viewer', 'seller', 'administrator']);
+
+                const mostRecentWeek = await fetchMostRecentWeek();
+
+                if (!mostRecentWeek) {
+                    frShowNoData();
+                    return;
+                }
+
+                const data = await fetchFridayReportViewer(mostRecentWeek);
+
+                if (!data.summary) {
+                    frShowNoData();
+                    return;
+                }
+
+                frRenderSummaryCards(data);
+                frRenderNarrative(data);
+                frRenderCategory(data.category_1_direct_action, 'fr-category-1');
+                frRenderCategory(data.category_2_effectiveness, 'fr-category-2');
+                frRenderCategory(data.category_3_time_gap, 'fr-category-3');
+                frRenderCategory(data.category_4_financial_impact, 'fr-category-4');
+
+                frShowContent();
+
+            } catch (error) {
+                console.error('Error loading Friday report:', error);
+                frShowError(error.message || 'Failed to load report from Supabase.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadFridayReportViewer);
+    </script>
+</body>
+</html>
