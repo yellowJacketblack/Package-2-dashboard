@@ -2087,4 +2087,268 @@ PAGE 6: EVIDENCE MODAL (unique classes)
         gap: 8px;
     }
 }
+   /* ============================================
+   PAGE 12: BRAND COMPARISON
+   ============================================ */
+
+.bc-card-spacing {
+    margin-top: 20px;
+}
+
+/* Comparison Grid (side-by-side) */
+.bc-comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+
+.bc-comparison-column {
+    background: var(--card-bg-alt);
+    border: var(--sketch-border-thin);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--sketch-shadow-sm);
+}
+
+.bc-column-header {
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px dashed #2d2d2d;
+    text-align: center;
+}
+
+/* TF-IDF Keyword List */
+.bc-keyword-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bc-keyword-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background: white;
+    border: 2px solid #2d2d2d;
+    border-radius: 8px;
+    box-shadow: 2px 2px 0px #2d2d2d;
+    transition: all 0.2s ease;
+}
+
+.bc-keyword-item:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0px #2d2d2d;
+}
+
+.bc-keyword-rank {
+    background: var(--text-color);
+    color: white;
+    font-weight: bold;
+    font-size: 0.85rem;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.bc-keyword-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.bc-keyword-text {
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+
+.bc-keyword-bar {
+    height: 6px;
+    background: rgba(45, 45, 45, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.bc-keyword-bar-fill {
+    height: 100%;
+    background: var(--secondary-color);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+.bc-keyword-score {
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #555;
+    flex-shrink: 0;
+}
+
+/* Venn Diagram Visualization */
+.bc-venn-container {
+    position: relative;
+    height: 250px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
+}
+
+.bc-venn-circle {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    border: 3px solid #2d2d2d;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    box-shadow: var(--sketch-shadow-sm);
+}
+
+.bc-venn-a {
+    background: rgba(255, 107, 107, 0.4);
+    left: calc(50% - 120px);
+    z-index: 1;
+}
+
+.bc-venn-b {
+    background: rgba(78, 205, 196, 0.4);
+    left: calc(50% - 60px);
+    z-index: 2;
+}
+
+.bc-venn-label {
+    font-weight: bold;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+.bc-venn-label-small {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #555;
+}
+
+.bc-venn-count {
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+
+.bc-venn-intersection {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #2d2d2d;
+}
+
+.bc-venn-intersection .bc-venn-count {
+    font-size: 1.2rem;
+}
+
+/* Competitor Items (NER) */
+.bc-competitor-item {
+    background: white;
+    border: 2px solid #2d2d2d;
+    border-radius: 8px;
+    padding: 12px 15px;
+    margin-bottom: 10px;
+    box-shadow: 2px 2px 0px #2d2d2d;
+    transition: all 0.2s ease;
+}
+
+.bc-competitor-item:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0px #2d2d2d;
+}
+
+.bc-competitor-name {
+    margin-bottom: 5px;
+}
+
+.bc-competitor-count {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.bc-competitor-keywords {
+    color: #777;
+    font-style: italic;
+}
+
+/* Strategy Stats */
+.bc-strategy-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.bc-strategy-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background: white;
+    border: 2px solid #2d2d2d;
+    border-radius: 8px;
+    box-shadow: 2px 2px 0px #2d2d2d;
+}
+
+.bc-strategy-label {
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.bc-strategy-value {
+    font-size: 1.1rem;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .bc-comparison-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .bc-venn-container {
+        height: 200px;
+    }
+
+    .bc-venn-circle {
+        width: 140px;
+        height: 140px;
+    }
+
+    .bc-venn-a {
+        left: calc(50% - 90px);
+    }
+
+    .bc-venn-b {
+        left: calc(50% - 50px);
+    }
+}
 }
