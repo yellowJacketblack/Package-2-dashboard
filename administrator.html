@@ -1667,23 +1667,123 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
     </div>
 </div>
             <!-- ============================================
-                 PAGE 11: ROI ANALYSIS (Placeholder)
-                 ============================================ -->
-            <div id="page-roi-analysis" class="admin-page">
-                <div class="page-header">
-                    <h1>ROI Analysis</h1>
-                    <p>Friday financial reports comparing sells vs inventory vs costs. Answers whether The Strategies are working.</p>
-                </div>
-                <div class="coming-soon">
-                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="1" x2="12" y2="23"/>
-                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                    </svg>
-                    <h3>Coming Soon</h3>
-                    <p>This report will pull from <code>roi_prompts</code>, <code>sell_prompts</code>, and <code>inventory_prompts</code>.</p>
-                    <p>Answers: Did the seller act on GIRL's suggestions? Which strategies worked best? ROI of acted-on vs not-acted-on strategies.</p>
+     PAGE 11: ROI ANALYSIS / FRIDAY FINANCIAL REPORT
+     ============================================ -->
+<div id="page-roi-analysis" class="admin-page">
+    <div class="page-header">
+        <h1>ROI Analysis</h1>
+        <p>Friday Financial Report — answers 14 questions about strategy effectiveness and financial impact.</p>
+    </div>
+
+    <!-- Loading State -->
+    <div id="fr-loading" class="loading">
+        <div class="loading-spinner"></div>
+        <p>Loading Friday Financial Report from The Library...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="fr-error" class="alert alert-danger hidden">
+        <span class="alert-icon">⚠</span>
+        <div class="flex-1">
+            <strong>Error:</strong> <span id="fr-error-text"></span>
+            <button class="btn btn-sm btn-secondary ml-10" onclick="loadFridayReport()">Retry</button>
+        </div>
+    </div>
+
+    <!-- No Data State -->
+    <div id="fr-no-data" class="empty-state hidden">
+        <h3>No Friday Report Available</h3>
+        <p>No Friday ROI analysis results found. This could mean:</p>
+        <ul class="info-list">
+            <li>No ROI costs have been entered for this week</li>
+            <li>The Friday analysis pipeline hasn't run yet</li>
+            <li>No strategies, inventory, or sell data exists for this week</li>
+        </ul>
+        <p class="mt-1rem">Enter ROI costs via Page 5, then run the Friday analysis pipeline.</p>
+    </div>
+
+    <!-- Main Content -->
+    <div id="fr-content" class="hidden">
+
+        <!-- Week Selector -->
+        <div class="card fr-card-spacing">
+            <div class="card-header">
+                <h2>Select Week</h2>
+            </div>
+            <div class="card-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="fr-week-select">Week Ending</label>
+                        <select id="fr-week-select" class="form-select" onchange="loadFridayReport()">
+                            <option value="">Loading available weeks...</option>
+                        </select>
+                    </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="stats-grid fr-card-spacing" id="fr-summary-cards"></div>
+
+        <!-- Dynamic Narrative -->
+        <div class="card fr-card-spacing">
+            <div class="card-header">
+                <h2>Who Benefits from ROI?</h2>
+            </div>
+            <div class="card-body">
+                <div id="fr-narrative-text" class="fr-narrative"></div>
+                <div id="fr-narrative-breakdown" class="fr-breakdown-grid"></div>
+            </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="card fr-card-spacing">
+            <div class="card-header">
+                <h2>Recommendations for Seller</h2>
+            </div>
+            <div class="card-body">
+                <div id="fr-recommendations"></div>
+            </div>
+        </div>
+
+        <!-- Category 1: Direct Action Evidence -->
+        <div class="card fr-card-spacing">
+            <div class="card-header">
+                <h2>Category 1: Direct Action Evidence</h2>
+                <span class="font-sm text-muted">Did the seller act on GIRL's suggestions?</span>
+            </div>
+            <div class="card-body" id="fr-category-1"></div>
+        </div>
+
+        <!-- Category 2: Strategy Effectiveness -->
+        <div class="card fr-card-spacing">
+            <div class="card-header">
+                <h2>Category 2: Strategy Effectiveness</h2>
+                <span class="font-sm text-muted">Which strategies worked best?</span>
+            </div>
+            <div class="card-body" id="fr-category-2"></div>
+        </div>
+
+        <!-- Category 3: Time Gap Analysis -->
+        <div class="card fr-card-spacing">
+            <div class="card-header">
+                <h2>Category 3: Time Gap Analysis</h2>
+                <span class="font-sm text-muted">How quickly did the seller act?</span>
+            </div>
+            <div class="card-body" id="fr-category-3"></div>
+        </div>
+
+        <!-- Category 4: ROI & Financial Impact -->
+        <div class="card fr-card-spacing">
+            <div class="card-header">
+                <h2>Category 4: ROI & Financial Impact</h2>
+                <span class="font-sm text-muted">Did acting on strategies improve profitability?</span>
+            </div>
+            <div class="card-body" id="fr-category-4"></div>
+        </div>
+
+    </div>
+</div>
 
             <!-- ============================================
                  PAGE 12: BRAND COMPARISON (Placeholder)
