@@ -8,19 +8,105 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <h1 class="title">Viewer Dashboard</h1>
-            <a href="index.html" class="nav-btn">← Back to Home</a>
-        </header>
+    <div class="background-pattern"></div>
 
-        <main class="page-content">
-            <div class="placeholder-card">
-                <h2>Reports Page</h2>
-                <p>This page will display dashboard reports for viewers.</p>
-                <p>Security: Only accessible to users with the "viewer" role.</p>
+    <div class="page-container">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <a href="viewer.html" class="navbar-brand">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+                GIRL, the Butler
+            </a>
+            <div class="navbar-links">
+                <a href="viewer.html" class="navbar-link active">Dashboard</a>
+                <a href="index.html" class="navbar-link logout">Logout</a>
             </div>
-        </main>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>Viewer Dashboard</h1>
+            <p>Read-only access to GIRL, the Butler's analysis reports.</p>
+        </div>
+
+        <!-- Report Cards Grid -->
+        <div class="report-grid">
+            <a href="popularity-ranking.html" class="report-card">
+                <div class="report-card-icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="20" x2="12" y2="10"/>
+                        <line x1="18" y1="20" x2="18" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="16"/>
+                    </svg>
+                </div>
+                <h2>Popularity Ranking</h2>
+                <p>Google Trends volume over time with CAGR, correlation matrix, and peak alerts.</p>
+            </a>
+
+            <a href="purchase-keywords.html" class="report-card">
+                <div class="report-card-icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <path d="M16 10a4 4 0 0 1-8 0"/>
+                    </svg>
+                </div>
+                <h2>Purchase Keywords</h2>
+                <p>Ranked keywords from TF-IDF analysis with purchase intent classification.</p>
+            </a>
+
+            <a href="roi-analysis.html" class="report-card">
+                <div class="report-card-icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="1" x2="12" y2="23"/>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                </div>
+                <h2>ROI Analysis</h2>
+                <p>Friday Financial Report with strategy effectiveness and financial impact.</p>
+            </a>
+
+            <a href="brand-comparison.html" class="report-card">
+                <div class="report-card-icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 3a3 3 0 0 0-3 3v12"/>
+                        <path d="M6 3a3 3 0 0 1 3 3v12"/>
+                        <path d="M3 9h6"/>
+                        <path d="M15 9h6"/>
+                    </svg>
+                </div>
+                <h2>Brand Comparison</h2>
+                <p>Side-by-side brand analysis with Jaccard Similarity and competitor overlap.</p>
+            </a>
+
+            <a href="emerging-vs-declining.html" class="report-card">
+                <div class="report-card-icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                        <polyline points="17 6 23 6 23 12"/>
+                    </svg>
+                </div>
+                <h2>Emerging vs Declining</h2>
+                <p>Monthly comparison of keywords appearing vs disappearing over time.</p>
+            </a>
+
+            <a href="keyword-discovery.html" class="report-card">
+                <div class="report-card-icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="M21 21l-4.35-4.35"/>
+                        <path d="M8 11h6"/>
+                        <path d="M11 8v6"/>
+                    </svg>
+                </div>
+                <h2>Keyword Discovery</h2>
+                <p>AnswerThePublic keyword results with TF-IDF importance scores.</p>
+            </a>
+        </div>
 
         <footer class="footer">
             <p>&copy; 2026 GIRL, the Butler</p>
@@ -29,9 +115,9 @@
 
     <script src="assets/js/config.js"></script>
     <script src="assets/js/auth.js"></script>
+    <script src="assets/js/timezone.js"></script>
     <script>
-        // Security check: redirect if not viewer
-        checkRoleAccess('viewer');
+        checkRoleAccess(['viewer', 'administrator']);
     </script>
 </body>
 </html>
