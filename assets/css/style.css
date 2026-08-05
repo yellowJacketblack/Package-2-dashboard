@@ -2121,7 +2121,7 @@ PAGE 6: EVIDENCE MODAL (unique classes)
 #bc-shared-keywords .badge-info {
     margin: 3px;
 }
-   /* ============================================
+/* ============================================
    PAGE 13: EMERGING VS DECLINING
    ============================================ */
 
@@ -2134,28 +2134,16 @@ PAGE 6: EVIDENCE MODAL (unique classes)
     height: 350px;
 }
 
+.ed-keyword-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
 .ed-keyword-scroll {
     max-height: 500px;
     overflow-y: auto;
     padding-right: 5px;
-}
-
-.ed-keyword-scroll::-webkit-scrollbar {
-    width: 8px;
-}
-
-.ed-keyword-scroll::-webkit-scrollbar-track {
-    background: rgba(45, 45, 45, 0.05);
-    border-radius: 4px;
-}
-
-.ed-keyword-scroll::-webkit-scrollbar-thumb {
-    background: rgba(45, 45, 45, 0.3);
-    border-radius: 4px;
-}
-
-.ed-keyword-scroll::-webkit-scrollbar-thumb:hover {
-    background: rgba(45, 45, 45, 0.5);
 }
 
 .ed-keyword-item {
@@ -2181,7 +2169,21 @@ PAGE 6: EVIDENCE MODAL (unique classes)
     text-align: center;
     padding: 30px;
     color: #666;
-    font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .ed-keyword-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ed-chart-wrapper {
+        height: 250px;
+    }
+
+    .ed-keyword-scroll {
+        max-height: 300px;
+    }
 }
 
 /* Responsive */
