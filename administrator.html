@@ -1935,7 +1935,7 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
     </div>
 </div>
 
-<!-- ============================================
+           <!-- ============================================
      PAGE 13: EMERGING VS DECLINING
      ============================================ -->
 <div id="page-emerging-declining" class="admin-page">
@@ -1964,11 +1964,11 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
         <h3>No Emerging vs Declining Data Available</h3>
         <p>No keyword emergence analysis results found. This could mean:</p>
         <ul class="info-list">
-            <li>No keyword_emergence entries have been recorded yet</li>
+            <li>No inventory prompts have been entered yet</li>
             <li>The emerging/declining analysis pipeline hasn't run yet</li>
-            <li>The analysis_results table has no emerging_declining_* entries</li>
+            <li>The keyword_emergence table is empty</li>
         </ul>
-        <p class="mt-1rem">The text analysis pipeline runs daily at 1 AM UTC and computes emerging/declining keywords from the keyword_emergence table.</p>
+        <p class="mt-1rem">Enter inventory prompts via Page 2, then run the emerging_declining_analysis.py pipeline.</p>
     </div>
 
     <!-- Main Content -->
@@ -2003,9 +2003,9 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
         <!-- Summary Cards -->
         <div class="stats-grid ed-card-spacing" id="ed-summary-cards"></div>
 
-        <!-- Trend Chart -->
+        <!-- Monthly Trend Chart -->
         <div class="chart-container ed-card-spacing">
-            <div class="chart-title">Emerging vs Declining Over Time</div>
+            <div class="chart-title">Emerging vs Declining Keywords Over Time</div>
             <div class="ed-chart-wrapper">
                 <canvas id="ed-trend-chart"></canvas>
             </div>
@@ -2013,18 +2013,19 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
 
         <!-- Net Growth Chart -->
         <div class="chart-container ed-card-spacing">
-            <div class="chart-title">Net Keyword Growth by Brand</div>
+            <div class="chart-title">Net Keyword Growth per Brand (Emerging minus Declining)</div>
             <div class="ed-chart-wrapper">
                 <canvas id="ed-net-growth-chart"></canvas>
             </div>
         </div>
 
-        <!-- Keyword Lists Side by Side -->
-        <div class="ed-keyword-grid ed-card-spacing">
+        <!-- Side-by-Side Keyword Lists -->
+        <div class="grid-2 ed-card-spacing">
             <!-- Emerging Keywords -->
             <div class="card">
                 <div class="card-header">
-                    <h2>Emerging Keywords <span id="ed-emerging-count" class="font-sm" style="color: #555; font-weight: normal;">0</span></h2>
+                    <h2>Emerging Keywords</h2>
+                    <span class="badge badge-success" id="ed-emerging-count">0</span>
                 </div>
                 <div class="card-body">
                     <div id="ed-emerging-list" class="ed-keyword-scroll"></div>
@@ -2034,7 +2035,8 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
             <!-- Declining Keywords -->
             <div class="card">
                 <div class="card-header">
-                    <h2>Declining Keywords <span id="ed-declining-count" class="font-sm" style="color: #555; font-weight: normal;">0</span></h2>
+                    <h2>Declining Keywords</h2>
+                    <span class="badge badge-danger" id="ed-declining-count">0</span>
                 </div>
                 <div class="card-body">
                     <div id="ed-declining-list" class="ed-keyword-scroll"></div>
@@ -2067,7 +2069,7 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
         <!-- Brand Summary Table -->
         <div class="card ed-card-spacing">
             <div class="card-header">
-                <h2>Brand Summary</h2>
+                <h2>Brand Summary (All Time)</h2>
             </div>
             <div class="table-container">
                 <table class="data-table" id="ed-brand-summary-table">
@@ -4640,28 +4642,35 @@ async function loadPurchaseKeywords() {
     // Make functions globally accessible
 window.loadPurchaseKeywords = loadPurchaseKeywords;
 window.resetPkFilters = resetPkFilters;
-
-// ============================================
+    // ============================================
 // SECTION: Page 12 — Brand Comparison
 // ============================================
 
-let bcAllData = {};
-let bcEffectiveness = {};
-let bcCompetitors = {};
-let bcJaccard = {};
+let bcTfidfData = {};
+let bcNerData = {};
+let bcStrategyData = {};
+let bcTrendData = {};
+let bcAvailableBrands = [];
+let bcTrendChart = null;
 
+// Fetch all brand comparison data from analysis_results
 async function fetchBrandComparisonData() {
     const { data, error } = await supabaseClient
         .from('analysis_results')
         .select('*')
-        .like('analysis_type', 'brand_comparison_%')
+        .in('analysis_type', [
+            'brand_comparison_tfidf',
+            'brand_comparison_ner',
+            'brand_comparison_strategy',
+            'brand_comparison_trends'
+        ])
         .order('computed_at', { ascending: false });
 
     if (error) throw error;
 
     const grouped = {};
     for (const row of data) {
-        const key = row.analysis_type.replace('brand_comparison_', '');
+        const key = row.analysis_type;
         if (!grouped[key]) {
             grouped[key] = JSON.parse(row.results);
         }
@@ -4670,6 +4679,7 @@ async function fetchBrandComparisonData() {
     return grouped;
 }
 
+// Show/hide state functions
 function bcShowLoading() {
     document.getElementById('bc-loading').classList.remove('hidden');
     document.getElementById('bc-error').classList.add('hidden');
@@ -4693,10 +4703,524 @@ function bcShowContent() {
     document.getElementById('bc-content').classList.remove('hidden');
 }
 
+// Populate brand dropdowns
+function bcPopulateBrandDropdowns() {
+    const selectA = document.getElementById('bc-brand-a');
+    const selectB = document.getElementById('bc-brand-b');
+
+    // Clear existing options (keep placeholder)
+    selectA.innerHTML = '<option value="">-- Select Brand --</option>';
+    selectB.innerHTML = '<option value="">-- Select Brand --</option>';
+
+    for (const brand of bcAvailableBrands) {
+        const optA = document.createElement('option');
+        optA.value = brand;
+        optA.textContent = brand;
+        selectA.appendChild(optA);
+
+        const optB = document.createElement('option');
+        optB.value = brand;
+        optB.textContent = brand;
+        selectB.appendChild(optB);
+    }
+}
+
+// Calculate Jaccard Similarity between two keyword sets
+function calculateJaccardSimilarity(setA, setB) {
+    const normalizedA = new Set(setA.map(k => k.toLowerCase().trim()));
+    const normalizedB = new Set(setB.map(k => k.toLowerCase().trim()));
+
+    const intersection = new Set([...normalizedA].filter(x => normalizedB.has(x)));
+    const union = new Set([...normalizedA, ...normalizedB]);
+
+    if (union.size === 0) return 0;
+
+    return intersection.size / union.size;
+}
+
+// Get shared and unique keywords
+function getKeywordOverlap(keywordsA, keywordsB) {
+    const normalizedA = keywordsA.map(k => ({ original: k, normalized: k.toLowerCase().trim() }));
+    const normalizedB = keywordsB.map(k => ({ original: k, normalized: k.toLowerCase().trim() }));
+
+    const setA = new Set(normalizedA.map(k => k.normalized));
+    const setB = new Set(normalizedB.map(k => k.normalized));
+
+    const shared = [...setA].filter(x => setB.has(x));
+    const uniqueA = [...setA].filter(x => !setB.has(x));
+    const uniqueB = [...setB].filter(x => !setA.has(x));
+
+    return {
+        shared: shared,
+        uniqueA: uniqueA,
+        uniqueB: uniqueB,
+        sharedOriginals: normalizedA.filter(k => setB.has(k.normalized)).map(k => k.original),
+        uniqueAOriginals: normalizedA.filter(k => !setB.has(k.normalized)).map(k => k.original),
+        uniqueBOriginals: normalizedB.filter(k => !setA.has(k.normalized)).map(k => k.original)
+    };
+}
+
+// Render Jaccard similarity section
+function bcRenderJaccard(brandA, brandB, keywordsA, keywordsB) {
+    const section = document.getElementById('bc-jaccard-section');
+    section.classList.remove('hidden');
+
+    const overlap = getKeywordOverlap(keywordsA, keywordsB);
+    const jaccard = calculateJaccardSimilarity(keywordsA, keywordsB);
+    const jaccardPct = (jaccard * 100).toFixed(1);
+
+    // Jaccard value
+    document.getElementById('bc-jaccard-value').textContent = jaccardPct + '%';
+
+    // Interpretation
+    let interpretation = '';
+    let cardClass = '';
+    if (jaccard >= 0.7) {
+        interpretation = 'Very high overlap — brands target similar search terms';
+        cardClass = 'danger';
+    } else if (jaccard >= 0.4) {
+        interpretation = 'Moderate overlap — some shared keyword territory';
+        cardClass = 'warning';
+    } else if (jaccard >= 0.2) {
+        interpretation = 'Low overlap — mostly distinct keyword strategies';
+        cardClass = 'info';
+    } else {
+        interpretation = 'Minimal overlap — brands occupy different search spaces';
+        cardClass = 'success';
+    }
+
+    const jaccardCard = document.getElementById('bc-jaccard-card');
+    jaccardCard.className = 'stat-card ' + cardClass;
+
+    document.getElementById('bc-jaccard-interpretation').textContent = interpretation;
+
+    // Counts
+    document.getElementById('bc-shared-count').textContent = overlap.shared.length;
+    document.getElementById('bc-unique-a-count').textContent = overlap.uniqueA.length;
+    document.getElementById('bc-unique-b-count').textContent = overlap.uniqueB.length;
+
+    document.getElementById('bc-unique-a-label').textContent = 'Unique to ' + brandA;
+    document.getElementById('bc-unique-b-label').textContent = 'Unique to ' + brandB;
+
+    // Venn visualization
+    document.getElementById('bc-venn-label-a').textContent = brandA;
+    document.getElementById('bc-venn-label-b').textContent = brandB;
+    document.getElementById('bc-venn-count-a').textContent = overlap.uniqueA.length;
+    document.getElementById('bc-venn-count-b').textContent = overlap.uniqueB.length;
+    document.getElementById('bc-venn-intersection-count').textContent = overlap.shared.length;
+}
+
+// Render TF-IDF side-by-side
+function bcRenderTfidf(brandA, brandB) {
+    const section = document.getElementById('bc-tfidf-section');
+    section.classList.remove('hidden');
+
+    document.getElementById('bc-tfidf-header-a').textContent = brandA;
+    document.getElementById('bc-tfidf-header-b').textContent = brandB;
+
+    const listA = document.getElementById('bc-tfidf-list-a');
+    const listB = document.getElementById('bc-tfidf-list-b');
+
+    const tfidfA = bcTfidfData[brandA] || [];
+    const tfidfB = bcTfidfData[brandB] || [];
+
+    listA.innerHTML = bcFormatTfidfList(tfidfA, brandA);
+    listB.innerHTML = bcFormatTfidfList(tfidfB, brandB);
+}
+
+// Format TF-IDF keyword list
+function bcFormatTfidfList(keywords, brand) {
+    if (!keywords || keywords.length === 0) {
+        return '<p class="font-sm pop-no-data-text">No TF-IDF data for ' + brand + '.</p>';
+    }
+
+    // Sort by score descending
+    const sorted = [...keywords].sort((a, b) => b.tfidf_score - a.tfidf_score);
+
+    return sorted.slice(0, 15).map((item, idx) => {
+        const score = parseFloat(item.tfidf_score).toFixed(4);
+        const barWidth = Math.min(100, (item.tfidf_score / sorted[0].tfidf_score) * 100);
+        return `
+            <div class="bc-keyword-item">
+                <div class="bc-keyword-rank">${idx + 1}</div>
+                <div class="bc-keyword-content">
+                    <div class="bc-keyword-text">${item.keyword}</div>
+                    <div class="bc-keyword-bar">
+                        <div class="bc-keyword-bar-fill" style="width: ${barWidth}%;"></div>
+                    </div>
+                </div>
+                <div class="bc-keyword-score">${score}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Render shared keywords
+function bcRenderSharedKeywords(keywordsA, keywordsB) {
+    const section = document.getElementById('bc-shared-section');
+    const overlap = getKeywordOverlap(keywordsA, keywordsB);
+
+    if (overlap.shared.length === 0) {
+        section.classList.add('hidden');
+        return;
+    }
+
+    section.classList.remove('hidden');
+
+    const container = document.getElementById('bc-shared-keywords-list');
+    container.innerHTML = overlap.shared.map(kw => `
+        <div class="list-item">
+            <div class="list-item-content">
+                <div class="list-item-title">
+                    <span class="badge badge-info">SHARED</span>
+                    ${kw}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Render NER competitor comparison
+function bcRenderNer(brandA, brandB) {
+    const section = document.getElementById('bc-ner-section');
+    section.classList.remove('hidden');
+
+    document.getElementById('bc-ner-header-a').textContent = brandA + ' Competitors';
+    document.getElementById('bc-ner-header-b').textContent = brandB + ' Competitors';
+
+    const listA = document.getElementById('bc-ner-list-a');
+    const listB = document.getElementById('bc-ner-list-b');
+
+    const nerA = bcNerData[brandA] || [];
+    const nerB = bcNerData[brandB] || [];
+
+    listA.innerHTML = bcFormatNerList(nerA, brandA);
+    listB.innerHTML = bcFormatNerList(nerB, brandB);
+}
+
+// Format NER competitor list
+function bcFormatNerList(competitors, brand) {
+    if (!competitors || competitors.length === 0) {
+        return '<p class="font-sm pop-no-data-text">No competitor data extracted for ' + brand + '.</p>';
+    }
+
+    // Aggregate by competitor name
+    const aggregated = {};
+    for (const item of competitors) {
+        const name = item.competitor || item.entity;
+        if (!name) continue;
+        if (!aggregated[name]) {
+            aggregated[name] = { name: name, count: 0, keywords: [] };
+        }
+        aggregated[name].count++;
+        if (item.keyword && !aggregated[name].keywords.includes(item.keyword)) {
+            aggregated[name].keywords.push(item.keyword);
+        }
+    }
+
+    const sorted = Object.values(aggregated).sort((a, b) => b.count - a.count);
+
+    return sorted.map(comp => `
+        <div class="bc-competitor-item">
+            <div class="bc-competitor-name">
+                <span class="badge badge-seller">${comp.name}</span>
+            </div>
+            <div class="bc-competitor-count">${comp.count} mention${comp.count !== 1 ? 's' : ''}</div>
+            ${comp.keywords.length > 0 ? `
+                <div class="bc-competitor-keywords font-sm">
+                    Found in: ${comp.keywords.slice(0, 3).join(', ')}${comp.keywords.length > 3 ? '...' : ''}
+                </div>
+            ` : ''}
+        </div>
+    `).join('');
+}
+
+// Render strategy effectiveness comparison
+function bcRenderStrategy(brandA, brandB) {
+    const section = document.getElementById('bc-strategy-section');
+    section.classList.remove('hidden');
+
+    document.getElementById('bc-strategy-header-a').textContent = brandA;
+    document.getElementById('bc-strategy-header-b').textContent = brandB;
+
+    const statsA = bcStrategyData[brandA] || {};
+    const statsB = bcStrategyData[brandB] || {};
+
+    document.getElementById('bc-strategy-stats-a').innerHTML = bcFormatStrategyStats(statsA, brandA);
+    document.getElementById('bc-strategy-stats-b').innerHTML = bcFormatStrategyStats(statsB, brandB);
+}
+
+// Format strategy effectiveness stats
+function bcFormatStrategyStats(stats, brand) {
+    if (!stats || Object.keys(stats).length === 0) {
+        return '<p class="font-sm pop-no-data-text">No strategy data for ' + brand + '.</p>';
+    }
+
+    const total = stats.total_strategies || 0;
+    const actedOn = stats.acted_on_count || 0;
+    const actionRate = total > 0 ? ((actedOn / total) * 100).toFixed(1) : '0.0';
+    const inventoryResult = stats.inventory_acquisitions || 0;
+    const salesResult = stats.actual_sales || 0;
+    const revenue = stats.total_revenue || 0;
+    const avgGap = stats.avg_time_gap_days || 'N/A';
+
+    return `
+        <div class="bc-strategy-stat-row">
+            <span class="bc-strategy-label">Total Strategies</span>
+            <span class="bc-strategy-value">${total}</span>
+        </div>
+        <div class="bc-strategy-stat-row">
+            <span class="bc-strategy-label">Acted On</span>
+            <span class="bc-strategy-value text-success">${actedOn}</span>
+        </div>
+        <div class="bc-strategy-stat-row">
+            <span class="bc-strategy-label">Action Rate</span>
+            <span class="bc-strategy-value">${actionRate}%</span>
+        </div>
+        <div class="bc-strategy-stat-row">
+            <span class="bc-strategy-label">Inventory Acquisitions</span>
+            <span class="bc-strategy-value">${inventoryResult}</span>
+        </div>
+        <div class="bc-strategy-stat-row">
+            <span class="bc-strategy-label">Actual Sales</span>
+            <span class="bc-strategy-value">${salesResult}</span>
+        </div>
+        <div class="bc-strategy-stat-row">
+            <span class="bc-strategy-label">Total Revenue</span>
+            <span class="bc-strategy-value">$${parseFloat(revenue).toFixed(2)}</span>
+        </div>
+        <div class="bc-strategy-stat-row">
+            <span class="bc-strategy-label">Avg Time Gap (days)</span>
+            <span class="bc-strategy-value">${avgGap}</span>
+        </div>
+    `;
+}
+
+// Render trend comparison chart
+function bcRenderTrendChart(brandA, brandB) {
+    const trendA = bcTrendData[brandA];
+    const trendB = bcTrendData[brandB];
+
+    if (!trendA && !trendB) {
+        document.getElementById('bc-trend-section').classList.add('hidden');
+        return;
+    }
+
+    document.getElementById('bc-trend-section').classList.remove('hidden');
+
+    const ctx = document.getElementById('bc-trend-chart').getContext('2d');
+    const datasets = [];
+
+    const colors = ['#e74c3c', '#3498db'];
+
+    if (trendA && trendA.length > 0) {
+        datasets.push({
+            label: brandA,
+            data: trendA.map(point => ({ x: point.date, y: point.value })),
+            borderColor: colors[0],
+            backgroundColor: colors[0] + '20',
+            borderWidth: 2,
+            pointRadius: 1,
+            pointHoverRadius: 5,
+            tension: 0.3
+        });
+    }
+
+    if (trendB && trendB.length > 0) {
+        datasets.push({
+            label: brandB,
+            data: trendB.map(point => ({ x: point.date, y: point.value })),
+            borderColor: colors[1],
+            backgroundColor: colors[1] + '20',
+            borderWidth: 2,
+            pointRadius: 1,
+            pointHoverRadius: 5,
+            tension: 0.3
+        });
+    }
+
+    if (bcTrendChart) {
+        bcTrendChart.destroy();
+    }
+
+    bcTrendChart = new Chart(ctx, {
+        type: 'line',
+        data: { datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) { return context[0].raw.x; },
+                        label: function(context) { return context.dataset.label + ': ' + context.raw.y; }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: { unit: 'month', displayFormats: { month: 'MMM yyyy' } },
+                    title: { display: true, text: 'Date' }
+                },
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: { display: true, text: 'Search Interest (0-100)' }
+                }
+            }
+        }
+    });
+}
+
+// Main render function — called when brands are selected
+function renderBrandComparison() {
+    const brandA = document.getElementById('bc-brand-a').value;
+    const brandB = document.getElementById('bc-brand-b').value;
+
+    if (!brandA || !brandB) {
+        // Hide all comparison sections
+        document.getElementById('bc-jaccard-section').classList.add('hidden');
+        document.getElementById('bc-tfidf-section').classList.add('hidden');
+        document.getElementById('bc-shared-section').classList.add('hidden');
+        document.getElementById('bc-ner-section').classList.add('hidden');
+        document.getElementById('bc-strategy-section').classList.add('hidden');
+        document.getElementById('bc-trend-section').classList.add('hidden');
+        return;
+    }
+
+    if (brandA === brandB) {
+        alert('Please select two different brands to compare.');
+        return;
+    }
+
+    // Extract keywords for Jaccard
+    const tfidfA = bcTfidfData[brandA] || [];
+    const tfidfB = bcTfidfData[brandB] || [];
+    const keywordsA = tfidfA.map(k => k.keyword);
+    const keywordsB = tfidfB.map(k => k.keyword);
+
+    // Render all sections
+    bcRenderJaccard(brandA, brandB, keywordsA, keywordsB);
+    bcRenderTfidf(brandA, brandB);
+    bcRenderSharedKeywords(keywordsA, keywordsB);
+    bcRenderNer(brandA, brandB);
+    bcRenderStrategy(brandA, brandB);
+    bcRenderTrendChart(brandA, brandB);
+}
+
+// Reset brand selection
+function resetBrandComparisonSelection() {
+    document.getElementById('bc-brand-a').value = '';
+    document.getElementById('bc-brand-b').value = '';
+    renderBrandComparison();
+}
+
+// Main load function
+async function loadBrandComparison() {
+    bcShowLoading();
+
+    try {
+        const data = await fetchBrandComparisonData();
+
+        // Parse data into brand-keyed structures
+        bcTfidfData = data.brand_comparison_tfidf || {};
+        bcNerData = data.brand_comparison_ner || {};
+        bcStrategyData = data.brand_comparison_strategy || {};
+        bcTrendData = data.brand_comparison_trends || {};
+
+        // Collect all available brands
+        const brandSet = new Set();
+        for (const brand of Object.keys(bcTfidfData)) brandSet.add(brand);
+        for (const brand of Object.keys(bcNerData)) brandSet.add(brand);
+        for (const brand of Object.keys(bcStrategyData)) brandSet.add(brand);
+        for (const brand of Object.keys(bcTrendData)) brandSet.add(brand);
+
+        bcAvailableBrands = [...brandSet].sort();
+
+        if (bcAvailableBrands.length < 2) {
+            bcShowNoData();
+            return;
+        }
+
+        // Populate dropdowns
+        bcPopulateBrandDropdowns();
+
+        // Auto-select first two brands
+        if (bcAvailableBrands.length >= 2) {
+            document.getElementById('bc-brand-a').value = bcAvailableBrands[0];
+            document.getElementById('bc-brand-b').value = bcAvailableBrands[1];
+            renderBrandComparison();
+        }
+
+        bcShowContent();
+
+    } catch (error) {
+        console.error('Error loading brand comparison:', error);
+        bcShowError(error.message || 'Failed to load data from Supabase.');
+    }
+    // ============================================
+// SECTION: Page 12 — Brand Comparison
+// ============================================
+
+let bcAllData = {};
+let bcEffectiveness = {};
+let bcCompetitors = {};
+let bcJaccard = {};
+
+// Fetch all brand comparison analysis results
+async function fetchBrandComparisonData() {
+    const { data, error } = await supabaseClient
+        .from('analysis_results')
+        .select('*')
+        .like('analysis_type', 'brand_comparison_%')
+        .order('computed_at', { ascending: false });
+
+    if (error) throw error;
+
+    const grouped = {};
+    for (const row of data) {
+        const key = row.analysis_type.replace('brand_comparison_', '');
+        if (!grouped[key]) {
+            grouped[key] = JSON.parse(row.results);
+        }
+    }
+
+    return grouped;
+}
+
+// Show/hide states
+function bcShowLoading() {
+    document.getElementById('bc-loading').classList.remove('hidden');
+    document.getElementById('bc-error').classList.add('hidden');
+    document.getElementById('bc-no-data').classList.add('hidden');
+    document.getElementById('bc-content').classList.add('hidden');
+}
+
+function bcShowError(message) {
+    document.getElementById('bc-loading').classList.add('hidden');
+    document.getElementById('bc-error').classList.remove('hidden');
+    document.getElementById('bc-error-text').textContent = message;
+}
+
+function bcShowNoData() {
+    document.getElementById('bc-loading').classList.add('hidden');
+    document.getElementById('bc-no-data').classList.remove('hidden');
+}
+
+function bcShowContent() {
+    document.getElementById('bc-loading').classList.add('hidden');
+    document.getElementById('bc-content').classList.remove('hidden');
+}
+
+// Populate brand selectors
 function bcPopulateBrandSelectors(brands) {
     const select1 = document.getElementById('bc-brand-1');
     const select2 = document.getElementById('bc-brand-2');
 
+    // Clear existing options (except first)
     select1.innerHTML = '<option value="">-- Select Brand --</option>';
     select2.innerHTML = '<option value="">-- Select Brand --</option>';
 
@@ -4712,6 +5236,7 @@ function bcPopulateBrandSelectors(brands) {
         select2.appendChild(opt2);
     }
 
+    // Auto-select first two brands if available
     if (brands.length >= 2) {
         select1.value = brands[0];
         select2.value = brands[1];
@@ -4720,6 +5245,7 @@ function bcPopulateBrandSelectors(brands) {
     }
 }
 
+// Render summary cards
 function bcRenderSummaryCards(effectiveness) {
     const container = document.getElementById('bc-summary-cards');
     container.innerHTML = '';
@@ -4752,11 +5278,14 @@ function bcRenderSummaryCards(effectiveness) {
     }
 }
 
+// Render effectiveness table (all brands)
 function bcRenderEffectivenessTable(effectiveness) {
     const tbody = document.getElementById('bc-effectiveness-tbody');
     tbody.innerHTML = '';
 
     const brands = Object.keys(effectiveness);
+
+    // Sort by action rate descending
     brands.sort((a, b) => effectiveness[b].action_rate - effectiveness[a].action_rate);
 
     for (const brand of brands) {
@@ -4783,6 +5312,7 @@ function bcRenderEffectivenessTable(effectiveness) {
     }
 }
 
+// Render side-by-side comparison
 function renderSideBySideComparison() {
     const brand1 = document.getElementById('bc-brand-1').value;
     const brand2 = document.getElementById('bc-brand-2').value;
@@ -4862,6 +5392,7 @@ function renderSideBySideComparison() {
     }
 }
 
+// Render competitor overlap
 function bcRenderCompetitorOverlap(competitors) {
     const container = document.getElementById('bc-competitor-overlap');
     container.innerHTML = '';
@@ -4903,6 +5434,7 @@ function bcRenderCompetitorOverlap(competitors) {
     }
 }
 
+// Render Jaccard similarity matrix
 function bcRenderJaccardMatrix(jaccard) {
     const matrixContainer = document.getElementById('bc-jaccard-matrix');
     const interpContainer = document.getElementById('bc-jaccard-interpretations');
@@ -4922,13 +5454,16 @@ function bcRenderJaccardMatrix(jaccard) {
         return;
     }
 
+    // Build grid
     let gridHTML = `<div class="corr-matrix" style="grid-template-columns: 100px repeat(${brands.length}, 1fr);">`;
 
+    // Header row
     gridHTML += '<div class="corr-cell corr-header"></div>';
     for (const brand of brands) {
         gridHTML += `<div class="corr-cell corr-header">${brand}</div>`;
     }
 
+    // Data rows
     for (const rowBrand of brands) {
         gridHTML += `<div class="corr-cell corr-header">${rowBrand}</div>`;
         for (const colBrand of brands) {
@@ -4958,6 +5493,7 @@ function bcRenderJaccardMatrix(jaccard) {
     gridHTML += '</div>';
     matrixContainer.innerHTML = gridHTML;
 
+    // Render interpretations
     let interpHTML = '';
     for (const [pairKey, pairData] of Object.entries(pairs)) {
         const [brand1, brand2] = pairKey.split('_vs_');
@@ -4989,6 +5525,7 @@ function bcRenderJaccardMatrix(jaccard) {
     interpContainer.innerHTML = interpHTML || '<p class="font-sm text-muted">No pair interpretations available.</p>';
 }
 
+// Render shared keywords for selected brands
 function renderSharedKeywords() {
     const brand1 = document.getElementById('bc-brand-1').value;
     const brand2 = document.getElementById('bc-brand-2').value;
@@ -5016,9 +5553,11 @@ function renderSharedKeywords() {
     }
 
     html += '</div>';
+
     container.innerHTML = html;
 }
 
+// Main load function
 async function loadBrandComparison() {
     bcShowLoading();
 
@@ -5033,14 +5572,19 @@ async function loadBrandComparison() {
             return;
         }
 
+        // Store data globally
         bcAllData = data;
         bcEffectiveness = data.strategy_effectiveness || {};
         bcCompetitors = data.competitor_overlap || {};
         bcJaccard = data.jaccard || {};
 
+        // Get all brands from effectiveness data
         const brands = Object.keys(bcEffectiveness).sort();
 
+        // Populate selectors
         bcPopulateBrandSelectors(brands);
+
+        // Render sections
         bcRenderSummaryCards(bcEffectiveness);
         bcRenderEffectivenessTable(bcEffectiveness);
         renderSideBySideComparison();
@@ -5054,14 +5598,7 @@ async function loadBrandComparison() {
         console.error('Error loading brand comparison:', error);
         bcShowError(error.message || 'Failed to load data from Supabase.');
     }
-}
-
-// Make Page 12 functions globally accessible
-window.loadBrandComparison = loadBrandComparison;
-window.renderSideBySideComparison = renderSideBySideComparison;
-window.renderSharedKeywords = renderSharedKeywords;
-
-// ============================================
+    // ============================================
 // SECTION: Page 13 — Emerging vs Declining
 // ============================================
 
@@ -5071,6 +5608,7 @@ let edAllData = {};
 let edAvailableBrands = [];
 let edAvailableMonths = [];
 
+// Fetch all emerging/declining analysis results
 async function fetchEmergingDecliningData() {
     const { data, error } = await supabaseClient
         .from('analysis_results')
@@ -5091,6 +5629,7 @@ async function fetchEmergingDecliningData() {
     return grouped;
 }
 
+// State management
 function edShowLoading() {
     document.getElementById('ed-loading').classList.remove('hidden');
     document.getElementById('ed-error').classList.add('hidden');
@@ -5114,10 +5653,12 @@ function edShowContent() {
     document.getElementById('ed-content').classList.remove('hidden');
 }
 
+// Populate filter dropdowns
 function edPopulateFilters() {
     const brandSelect = document.getElementById('ed-filter-brand');
     const monthSelect = document.getElementById('ed-filter-month');
 
+    // Keep "All" option, clear the rest
     brandSelect.innerHTML = '<option value="all">All Brands</option>';
     monthSelect.innerHTML = '<option value="all">All Months</option>';
 
@@ -5136,6 +5677,7 @@ function edPopulateFilters() {
     }
 }
 
+// Get filtered data based on current filter selections
 function edGetFilteredData() {
     const brandFilter = document.getElementById('ed-filter-brand').value;
     const monthFilter = document.getElementById('ed-filter-month').value;
@@ -5144,6 +5686,7 @@ function edGetFilteredData() {
     const trends = edAllData.trends || [];
     const keywords = edAllData.keywords || [];
 
+    // Filter trends
     let filteredTrends = trends;
     if (brandFilter !== 'all') {
         filteredTrends = filteredTrends.filter(t => t.brand === brandFilter);
@@ -5152,6 +5695,7 @@ function edGetFilteredData() {
         filteredTrends = filteredTrends.filter(t => t.month === monthFilter);
     }
 
+    // Filter keywords
     let filteredKeywords = keywords;
     if (brandFilter !== 'all') {
         filteredKeywords = filteredKeywords.filter(k => k.brand === brandFilter);
@@ -5160,6 +5704,7 @@ function edGetFilteredData() {
         filteredKeywords = filteredKeywords.filter(k => k.month === monthFilter);
     }
 
+    // Filter brand summary
     let filteredBrandSummary = summary.brand_summary || [];
     if (brandFilter !== 'all') {
         filteredBrandSummary = filteredBrandSummary.filter(b => b.brand === brandFilter);
@@ -5173,6 +5718,7 @@ function edGetFilteredData() {
     };
 }
 
+// Render summary cards
 function edRenderSummaryCards(data) {
     const container = document.getElementById('ed-summary-cards');
     container.innerHTML = '';
@@ -5183,7 +5729,7 @@ function edRenderSummaryCards(data) {
     const netGrowth = totalEmerging - totalDeclining;
     const brandsTracked = (data.brandSummary || []).length;
     const monthsTracked = edAvailableMonths.length;
-    const growthRate = totalDeclining > 0
+    const growthRate = totalDeclining > 0 
         ? ((totalEmerging - totalDeclining) / totalDeclining * 100).toFixed(1) + '%'
         : 'N/A';
 
@@ -5208,6 +5754,7 @@ function edRenderSummaryCards(data) {
     }
 }
 
+// Render trend chart (emerging vs declining over time)
 function edRenderTrendChart(data) {
     const ctx = document.getElementById('ed-trend-chart').getContext('2d');
     const trends = data.trends || [];
@@ -5220,6 +5767,7 @@ function edRenderTrendChart(data) {
         return;
     }
 
+    // Group by month
     const monthlyData = {};
     for (const t of trends) {
         if (!monthlyData[t.month]) {
@@ -5277,13 +5825,19 @@ function edRenderTrendChart(data) {
                 }
             },
             scales: {
-                x: { title: { display: true, text: 'Month' } },
-                y: { beginAtZero: true, title: { display: true, text: 'Keyword Count' } }
+                x: {
+                    title: { display: true, text: 'Month' }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Keyword Count' }
+                }
             }
         }
     });
 }
 
+// Render net growth chart per brand
 function edRenderNetGrowthChart(data) {
     const ctx = document.getElementById('ed-net-growth-chart').getContext('2d');
     const brandSummary = data.brandSummary || [];
@@ -5298,6 +5852,7 @@ function edRenderNetGrowthChart(data) {
 
     const labels = brandSummary.map(b => b.brand);
     const netGrowthData = brandSummary.map(b => (b.total_emerging || 0) - (b.total_declining || 0));
+
     const barColors = netGrowthData.map(v => v >= 0 ? '#06C755' : '#ff6b6b');
 
     if (edNetGrowthChart) {
@@ -5331,13 +5886,18 @@ function edRenderNetGrowthChart(data) {
                 }
             },
             scales: {
-                x: { title: { display: true, text: 'Brand' } },
-                y: { title: { display: true, text: 'Net Keyword Growth' } }
+                x: {
+                    title: { display: true, text: 'Brand' }
+                },
+                y: {
+                    title: { display: true, text: 'Net Keyword Growth' }
+                }
             }
         }
     });
 }
 
+// Render emerging and declining keyword lists
 function edRenderKeywordLists(data) {
     const keywords = data.keywords || [];
     const emergingList = document.getElementById('ed-emerging-list');
@@ -5348,12 +5908,14 @@ function edRenderKeywordLists(data) {
     const emergingKeywords = keywords.filter(k => k.type === 'emerging' && k.keyword);
     const decliningKeywords = keywords.filter(k => k.type === 'declining' && k.keyword);
 
+    // Sort by date descending
     emergingKeywords.sort((a, b) => (b.date_tracked || '').localeCompare(a.date_tracked || ''));
     decliningKeywords.sort((a, b) => (b.date_tracked || '').localeCompare(a.date_tracked || ''));
 
     emergingCountEl.textContent = emergingKeywords.length;
     decliningCountEl.textContent = decliningKeywords.length;
 
+    // Render emerging
     if (emergingKeywords.length === 0) {
         emergingList.innerHTML = '<p class="font-sm ed-no-data-text">No emerging keywords found for current filters.</p>';
     } else {
@@ -5375,6 +5937,7 @@ function edRenderKeywordLists(data) {
         `).join('');
     }
 
+    // Render declining
     if (decliningKeywords.length === 0) {
         decliningList.innerHTML = '<p class="font-sm ed-no-data-text">No declining keywords found for current filters.</p>';
     } else {
@@ -5397,6 +5960,7 @@ function edRenderKeywordLists(data) {
     }
 }
 
+// Render monthly comparison table
 function edRenderMonthlyTable(data) {
     const tbody = document.getElementById('ed-monthly-tbody');
     const trends = data.trends || [];
@@ -5406,6 +5970,7 @@ function edRenderMonthlyTable(data) {
         return;
     }
 
+    // Sort by month descending, then brand
     trends.sort((a, b) => {
         if (b.month !== a.month) return (b.month || '').localeCompare(a.month || '');
         return (a.brand || '').localeCompare(b.brand || '');
@@ -5431,6 +5996,7 @@ function edRenderMonthlyTable(data) {
     }).join('');
 }
 
+// Render brand summary table
 function edRenderBrandSummaryTable(data) {
     const tbody = document.getElementById('ed-brand-summary-tbody');
     const brandSummary = data.brandSummary || [];
@@ -5440,6 +6006,7 @@ function edRenderBrandSummaryTable(data) {
         return;
     }
 
+    // Sort by net growth descending
     brandSummary.sort((a, b) => {
         const netA = (a.total_emerging || 0) - (a.total_declining || 0);
         const netB = (b.total_emerging || 0) - (b.total_declining || 0);
@@ -5450,11 +6017,11 @@ function edRenderBrandSummaryTable(data) {
         const emerging = b.total_emerging || 0;
         const declining = b.total_declining || 0;
         const net = emerging - declining;
-        const growthRate = declining > 0
-            ? ((emerging - declining) / declining * 100).toFixed(1) + '%'
+        const growthRate = declining > 0 
+            ? ((emerging - declining) / declining * 100).toFixed(1) + '%' 
             : 'N/A';
         const monthsTracked = b.months_tracked || 0;
-
+        
         let statusBadge = '';
         if (net > 0) {
             statusBadge = '<span class="badge badge-success">Growing</span>';
@@ -5478,6 +6045,7 @@ function edRenderBrandSummaryTable(data) {
     }).join('');
 }
 
+// Collect available brands and months from data
 function edCollectFilters() {
     const brandSet = new Set();
     const monthSet = new Set();
@@ -5505,6 +6073,7 @@ function edCollectFilters() {
     edAvailableMonths = [...monthSet].sort();
 }
 
+// Apply filters and re-render
 function edApplyFilters() {
     const data = edGetFilteredData();
     edRenderSummaryCards({ overall: edAllData.summary?.overall || {}, brandSummary: data.brandSummary });
@@ -5515,12 +6084,14 @@ function edApplyFilters() {
     edRenderBrandSummaryTable(data);
 }
 
+// Reset filters
 function edResetFilters() {
     document.getElementById('ed-filter-brand').value = 'all';
     document.getElementById('ed-filter-month').value = 'all';
     edApplyFilters();
 }
 
+// Main load function
 async function loadEmergingDeclining() {
     edShowLoading();
 
@@ -5535,9 +6106,14 @@ async function loadEmergingDeclining() {
         }
 
         edAllData = data;
+
+        // Collect available brands and months for filters
         edCollectFilters();
         edPopulateFilters();
+
+        // Initial render with no filters
         edApplyFilters();
+
         edShowContent();
 
     } catch (error) {
@@ -5545,7 +6121,7 @@ async function loadEmergingDeclining() {
         edShowError(error.message || 'Failed to load data from Supabase.');
     }
 }
-        
+
 // Make functions globally accessible
 window.loadEmergingDeclining = loadEmergingDeclining;
 window.edApplyFilters = edApplyFilters;
