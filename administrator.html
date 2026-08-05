@@ -4499,6 +4499,10 @@ async function loadPurchaseKeywords() {
         console.error('Error loading purchase keywords:', error);
         pkShowError(error.message || 'Failed to load data from Supabase.');
     }
+}
+    // Make functions globally accessible
+window.loadPurchaseKeywords = loadPurchaseKeywords;
+window.resetPkFilters = resetPkFilters;
     // ============================================
 // SECTION: Page 12 — Brand Comparison
 // ============================================
@@ -5467,7 +5471,6 @@ window.renderSharedKeywords = renderSharedKeywords;
 window.loadBrandComparison = loadBrandComparison;
 window.renderBrandComparison = renderBrandComparison;
 window.resetBrandComparisonSelection = resetBrandComparisonSelection;
-}
 
 // Make functions globally accessible
 window.loadPurchaseKeywords = loadPurchaseKeywords;
