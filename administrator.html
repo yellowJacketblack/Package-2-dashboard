@@ -5730,7 +5730,7 @@ function edRenderSummaryCards(data) {
     const brandsTracked = (data.brandSummary || []).length;
     const monthsTracked = edAvailableMonths.length;
     const growthRate = totalDeclining > 0 
-        ? ((totalEmerging - totalDeclining) / totalDecling * 100).toFixed(1) + '%'
+        ? ((totalEmerging - totalDeclining) / totalDeclining * 100).toFixed(1) + '%'
         : 'N/A';
 
     const cards = [
