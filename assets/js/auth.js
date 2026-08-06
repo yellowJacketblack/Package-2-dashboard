@@ -307,16 +307,17 @@ async function checkRoleAccess(requiredRole) {
 // ============================================
 async function logout() {
     // Check if supabaseClient is initialized
-    if (!window.supabaseClient) {
+     if (typeof supabaseClient === 'undefined') {
         console.error('supabaseClient not initialized!');
-        window.location.href = 'index.html';
+        window.location.href = 'index.html?logout=true';
         return;
     }
-    const { error } = await window.supabaseClient.auth.signOut();
-    if (error){
-        console.error('Logout error:', error);
-        alert('Logout failed: ' + error.message);
-        return;
+
+    try {
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) throw error;
+    } catch (err) {
+        console.error('Logout error:', err);
     }
 
     window.location.href = 'index.html?logout=true';
