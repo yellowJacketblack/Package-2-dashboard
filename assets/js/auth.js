@@ -296,45 +296,20 @@ async function checkRoleAccess(requiredRole) {
 // Logout function
 // ============================================
 async function logout() {
-    const { error } = await supabaseClient.auth.signOut();
-    if (error) {
-        console.error('Logout error:', error);
-    }
-    window.location.href = 'index.html';
     // Check if supabaseClient is initialized
     if (!window.supabaseClient) {
         console.error('supabaseClient not initialized!');
         window.location.href = 'index.html';
         return;
     }
-
-    try {
-        const { error } = await window.supabaseClient.auth.signOut();
-        if (error) throw error;
-        window.location.href = 'index.html';
-    } catch (err) {
-        console.error('Logout error:', err);
-        alert('Logout failed: ' + err.message);
-    }
-    (async () => {
-    const accessGranted = await checkRoleAccess('administrator');
-    if (!accessGranted) {
-        console.warn('Admin access not granted, hiding logout button');
+    const { error } = await window.supabaseClient.auth.signOut();
+    if (error){
+        console.error('Logout error:', error);
+        alert('Logout failed: ' + error.message);
         return;
     }
 
-    // Show sidebar
-    const sidebar = document.getElementById('admin-sidebar');
-    const logoutBtn = document.getElementById('sidebar-logout-btn');
-
-    sidebar.classList.add('visible');
-    logoutBtn.classList.remove('hidden');
-    logoutBtn.style.pointerEvents = 'auto';  // Explicitly enable clicks
-
-    // Now attach listener
-    logoutBtn.addEventListener('click', logout);
-    console.log('Logout button listener attached');
-})();
+    window.location.href = 'index.html';
 }
 
 // ============================================
