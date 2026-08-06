@@ -2273,31 +2273,6 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
     // Logout button
     document.getElementById('sidebar-logout-btn').addEventListener('click', logout);
 });
-
-            // Show sidebar and toggle button
-            document.getElementById('admin-sidebar').classList.add('visible');
-            document.getElementById('sidebar-toggle').classList.remove('hidden');
-            document.getElementById('admin-content').classList.add('sidebar-open');
-
-            // Load data for User Management page
-            loadPendingUsers();
-            loadExistingUsers();
-
-            // Set default date for inventory form
-            setDefaultInventoryDate();
-            // Set default date for ROI form (most recent Friday)
-            setDefaultRoiDate();
-            // Load strategies on page load
-            loadSearchStrategies();
-            // Load brands on page load
-            loadBrands();
-            // Load alerts log on page load
-            loadAlertsLog();
-            loadPurchaseKeywords();
-            loadBrandComparison();
-            loadEmergingDeclining();
-            
-
         // ============================================
         // SIDEBAR TOGGLE (for mobile)
         // ============================================
@@ -5832,8 +5807,6 @@ window.edResetFilters = edResetFilters;
 
 // Make functions globally accessible
 window.loadBrandComparison = loadBrandComparison;
-window.renderSideBySideComparison = renderSideBySideComparison;
-window.renderSharedKeywords = renderSharedKeywords;
 
 // Make functions globally accessible
 window.loadPurchaseKeywords = loadPurchaseKeywords;
