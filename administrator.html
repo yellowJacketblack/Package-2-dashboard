@@ -2246,6 +2246,7 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
     <script src="assets/js/config.js"></script>
     <script src="assets/js/timezone.js"></script>
     <script src="assets/js/auth.js"></script>
+    <script src="assets/js/admin.js"></script>
     <script>
         // ============================================
         // Administrator Page Logic
@@ -2254,6 +2255,21 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
             // Guard: only administrators can access
             const accessGranted = await checkRoleAccess('administrator');
             if (!accessGranted) return;
+            // Logout button
+            document.addEventListener('DOMContentLoaded', () => {
+    const logoutBtn = document.getElementById('sidebar-logout-btn');
+    
+    // Check if button exists before attaching
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            logout();
+        });
+    } else {
+        console.error('Logout button not found in DOM');
+    }
+});
+    </script>
 
             // Show sidebar and toggle button
             document.getElementById('admin-sidebar').classList.add('visible');
@@ -2278,9 +2294,6 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
             loadBrandComparison();
             loadEmergingDeclining();
             
-            // Logout button
-            document.getElementById('sidebar-logout-btn').addEventListener('click', logout);
-        })();
 
         // ============================================
         // SIDEBAR TOGGLE (for mobile)
