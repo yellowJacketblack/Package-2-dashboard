@@ -44,10 +44,20 @@ async function handleAuthState() {
     const urlParams = new URLSearchParams(window.location.search);
     const urlError = urlParams.get('error');
     const urlErrorDesc = urlParams.get('error_description');
+    const isLogout = urlParams.get('logout') === 'true';
 
     if (urlError) {
         console.error('Auth error from URL:', urlError, urlErrorDesc);
         alert('Login failed: ' + urlErrorDesc);
+        // Clean the URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+    }
+
+    // Force clear any lingering session and stop execution
+    if (isLogout) {
+        console.log('Logout parameter detected. Clearing session and showing login.');
+        await supabaseClient.auth.signOut();
         // Clean the URL
         window.history.replaceState({}, document.title, window.location.pathname);
         return;
@@ -309,7 +319,7 @@ async function logout() {
         return;
     }
 
-    window.location.href = 'index.html';
+    window.location.href = 'index.html?logout=true';
 }
 
 // ============================================
