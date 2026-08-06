@@ -2251,23 +2251,27 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
         // ============================================
         // Administrator Page Logic
         // ============================================
-        (async () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             // Guard: only administrators can access
             const accessGranted = await checkRoleAccess('administrator');
             if (!accessGranted) return;
             // Logout button
-            document.addEventListener('DOMContentLoaded', () => {
-    const logoutBtn = document.getElementById('sidebar-logout-btn');
-    
-    // Check if button exists before attaching
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            logout();
-        });
-    } else {
-        console.error('Logout button not found in DOM');
-    }
+            document.getElementById('admin-sidebar').classList.add('visible');
+            document.getElementById('sidebar-toggle').classList.remove('hidden');
+            document.getElementById('admin-content').classList.add('sidebar-open');
+            // Load all data
+            loadPendingUsers();
+            loadExistingUsers();
+            setDefaultInventoryDate();
+            setDefaultRoiDate();
+            loadSearchStrategies();
+            loadBrands();
+            loadAlertsLog();
+            loadPurchaseKeywords();
+            loadBrandComparison();
+            loadEmergingDeclining();
+    // Logout button
+    document.getElementById('sidebar-logout-btn').addEventListener('click', logout);
 });
     </script>
 
@@ -6269,11 +6273,6 @@ window.loadBrandComparison = loadBrandComparison;
 window.renderSideBySideComparison = renderSideBySideComparison;
 window.renderSharedKeywords = renderSharedKeywords;
 }
-
-// Make functions globally accessible
-window.loadBrandComparison = loadBrandComparison;
-window.renderBrandComparison = renderBrandComparison;
-window.resetBrandComparisonSelection = resetBrandComparisonSelection;
 
 // Make functions globally accessible
 window.loadPurchaseKeywords = loadPurchaseKeywords;
