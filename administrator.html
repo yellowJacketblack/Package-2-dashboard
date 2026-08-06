@@ -1785,99 +1785,61 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
     </div>
 </div>
 
-<!-- ============================================
-     PAGE 12: BRAND COMPARISON
+            <!-- ============================================
+     PAGE 12: BRAND COMPARISON 
      ============================================ -->
-<div id="page-12" class="admin-page">
+<div id="page-brand-comparison" class="admin-page">
     <div class="page-header">
         <h1>Brand Comparison</h1>
-        <p>Compare keyword strategies, competitors, and effectiveness across brands</p>
+        <p>Side-by-side brand analysis using strategy effectiveness, NER competitor extraction, and Jaccard Similarity for keyword overlap.</p>
     </div>
 
     <!-- Loading State -->
     <div id="bc-loading" class="loading">
         <div class="loading-spinner"></div>
-        <p>Loading brand comparison data...</p>
+        <p>Loading brand comparison data from The Library...</p>
     </div>
 
     <!-- Error State -->
-    <div id="bc-error" class="hidden">
-        <div class="alert alert-danger">
-            <span class="alert-icon">⚠</span>
-            <div>
-                <strong>Error:</strong>
-                <span id="bc-error-text"></span>
-            </div>
+    <div id="bc-error" class="alert alert-danger hidden">
+        <span class="alert-icon">⚠</span>
+        <div style="flex: 1;">
+            <strong>Error:</strong> <span id="bc-error-text"></span>
+            <button class="btn btn-sm btn-secondary" onclick="loadBrandComparison()" style="margin-left: 10px;">Retry</button>
         </div>
     </div>
 
     <!-- No Data State -->
-    <div id="bc-no-data" class="hidden">
-        <div class="empty-state">
-            <h3>No Brand Comparison Data</h3>
-            <p>Run the brand comparison analysis script to generate data.</p>
-        </div>
+    <div id="bc-no-data" class="empty-state hidden">
+        <h3>No Brand Comparison Data Available</h3>
+        <p>No brand comparison analysis results found. This could mean:</p>
+        <ul class="info-list">
+            <li>No search strategies have been logged yet</li>
+            <li>No NER results or TF-IDF results exist</li>
+            <li>The brand comparison analysis pipeline hasn't run yet</li>
+        </ul>
+        <p class="mt-1rem">Enter inventory prompts via Page 2 and run the analysis pipeline to generate comparison data.</p>
     </div>
 
-    <!-- Content -->
+    <!-- Main Content -->
     <div id="bc-content" class="hidden">
 
-        <!-- ═══ SUMMARY CARDS (all brands) ═══ -->
-        <div class="card bc-card-spacing">
-            <div class="card-header">
-                <h2>Strategy Effectiveness Summary</h2>
-            </div>
-            <div class="card-body">
-                <div id="bc-summary-cards" class="stats-grid"></div>
-            </div>
-        </div>
-
-        <!-- ═══ EFFECTIVENESS TABLE (all brands) ═══ -->
-        <div class="card bc-card-spacing">
-            <div class="card-header">
-                <h2>Effectiveness Breakdown — All Brands</h2>
-            </div>
-            <div class="card-body">
-                <div class="table-container">
-                    <table class="data-table" id="bc-effectiveness-table">
-                        <thead>
-                            <tr>
-                                <th>Brand</th>
-                                <th>Total</th>
-                                <th>Acted On</th>
-                                <th>Action Rate</th>
-                                <th>Inventory</th>
-                                <th>Sales</th>
-                                <th>Revenue</th>
-                                <th>ATPP Rate</th>
-                                <th>Google Trends Rate</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bc-effectiveness-tbody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- ═══ BRAND SELECTORS ═══ -->
+        <!-- Brand Selector for Side-by-Side Comparison -->
         <div class="card bc-card-spacing">
             <div class="card-header">
                 <h2>Select Brands to Compare</h2>
-                <button class="btn btn-secondary btn-sm" onclick="resetBrandComparisonSelection()">
-                    Reset
-                </button>
             </div>
             <div class="card-body">
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Brand A</label>
-                        <select id="bc-brand-a" class="form-select" onchange="renderBrandComparison()">
+                        <label class="form-label" for="bc-brand-1">Brand 1</label>
+                        <select id="bc-brand-1" class="form-select" onchange="renderSideBySideComparison()">
                             <option value="">-- Select Brand --</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Brand B</label>
-                        <select id="bc-brand-b" class="form-select" onchange="renderBrandComparison()">
+                        <label class="form-label" for="bc-brand-2">Brand 2</label>
+                        <select id="bc-brand-2" class="form-select" onchange="renderSideBySideComparison()">
                             <option value="">-- Select Brand --</option>
                         </select>
                     </div>
@@ -1885,173 +1847,88 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
             </div>
         </div>
 
-        <!-- ═══ SIDE-BY-SIDE METRIC COMPARISON TABLE ═══ -->
+        <!-- Strategy Effectiveness Summary Cards -->
+        <div class="stats-grid bc-card-spacing" id="bc-summary-cards"></div>
+
+        <!-- Side-by-Side Comparison Table -->
         <div class="card bc-card-spacing">
             <div class="card-header">
-                <h2>Side-by-Side Metric Comparison</h2>
+                <h2>Side-by-Side Comparison</h2>
+                <span class="font-sm text-muted">Strategy effectiveness metrics per brand</span>
             </div>
-            <div class="card-body">
-                <div class="table-container" id="bc-comparison-table">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Metric</th>
-                                <th id="bc-col-brand-a">Brand A</th>
-                                <th id="bc-col-brand-b">Brand B</th>
-                                <th>Difference</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bc-comparison-tbody">
-                            <tr><td colspan="4" style="text-align: center; padding: 30px; color: #666;">Select two brands to compare.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+            <div class="table-container">
+                <table class="data-table" id="bc-comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th id="bc-col-brand-1">Brand 1</th>
+                            <th id="bc-col-brand-2">Brand 2</th>
+                            <th>Difference</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bc-comparison-tbody"></tbody>
+                </table>
             </div>
         </div>
 
-        <!-- ═══ JACCARD VENN DIAGRAM (selected brands — client-side) ═══ -->
-        <div class="card bc-card-spacing" id="bc-jaccard-venn-section">
-            <div class="card-header">
-                <h2>Jaccard Similarity (Selected Brands)</h2>
-            </div>
-            <div class="card-body">
-                <div class="stats-grid" style="margin-bottom: 20px;">
-                    <div class="stat-card" id="bc-jaccard-card">
-                        <div class="stat-value" id="bc-jaccard-value">0%</div>
-                        <div class="stat-label">Jaccard Similarity</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="bc-shared-count">0</div>
-                        <div class="stat-label">Shared Keywords</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="bc-unique-a-count">0</div>
-                        <div class="stat-label" id="bc-unique-a-label">Unique to Brand A</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="bc-unique-b-count">0</div>
-                        <div class="stat-label" id="bc-unique-b-label">Unique to Brand B</div>
-                    </div>
-                </div>
-                <p class="font-sm text-muted" id="bc-jaccard-interpretation"></p>
-
-                <!-- Venn Diagram (CSS-based) -->
-                <div style="display: flex; justify-content: center; align-items: center; gap: 0; margin: 30px 0; position: relative; height: 200px;">
-                    <div style="width: 150px; height: 150px; border-radius: 50%; border: 3px solid #2d2d2d; background: rgba(231, 76, 60, 0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 1;">
-                        <strong id="bc-venn-label-a">Brand A</strong>
-                        <span id="bc-venn-count-a">0</span>
-                    </div>
-                    <div style="width: 150px; height: 150px; border-radius: 50%; border: 3px solid #2d2d2d; background: rgba(52, 152, 219, 0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; margin-left: -50px; position: relative; z-index: 2;">
-                        <strong id="bc-venn-label-b">Brand B</strong>
-                        <span id="bc-venn-count-b">0</span>
-                    </div>
-                    <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 3; background: white; border: 2px solid #2d2d2d; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold;">
-                        <span id="bc-venn-intersection-count">0</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ═══ JACCARD MATRIX (all brands — pre-computed) ═══ -->
+        <!-- Strategy Effectiveness Table (All Brands) -->
         <div class="card bc-card-spacing">
             <div class="card-header">
-                <h2>Jaccard Similarity Matrix — All Brands</h2>
+                <h2>Strategy Effectiveness by Brand</h2>
+                <span class="font-sm text-muted">All brands ranked by action rate</span>
             </div>
-            <div class="card-body">
-                <div id="bc-jaccard-matrix"></div>
-                <h3 style="margin-top: 20px; margin-bottom: 10px; font-size: 1.1rem; text-transform: uppercase;">Pair Interpretations</h3>
-                <div id="bc-jaccard-interpretations"></div>
+            <div class="table-container">
+                <table class="data-table" id="bc-effectiveness-table">
+                    <thead>
+                        <tr>
+                            <th>Brand</th>
+                            <th>Total Strategies</th>
+                            <th>Acted On</th>
+                            <th>Action Rate</th>
+                            <th>Inventory Acquisitions</th>
+                            <th>Actual Sales</th>
+                            <th>Total Revenue</th>
+                            <th>ATPP Rate</th>
+                            <th>Google Trends Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bc-effectiveness-tbody"></tbody>
+                </table>
             </div>
         </div>
 
-        <!-- ═══ SHARED KEYWORDS (selected brands — pre-computed) ═══ -->
+        <!-- Competitor Overlap (NER Results) -->
         <div class="card bc-card-spacing">
             <div class="card-header">
-                <h2>Shared Keywords (Selected Brands)</h2>
-            </div>
-            <div class="card-body">
-                <div id="bc-shared-keywords">
-                    <p class="font-sm text-muted">Select two brands to view shared keywords.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- ═══ TF-IDF SIDE-BY-SIDE (raw data) ═══ -->
-        <div class="card bc-card-spacing" id="bc-tfidf-section">
-            <div class="card-header">
-                <h2>TF-IDF Keyword Comparison</h2>
-            </div>
-            <div class="card-body">
-                <div class="grid-2">
-                    <div>
-                        <h3 id="bc-tfidf-header-a" style="margin-bottom: 15px;">Brand A</h3>
-                        <div id="bc-tfidf-list-a"></div>
-                    </div>
-                    <div>
-                        <h3 id="bc-tfidf-header-b" style="margin-bottom: 15px;">Brand B</h3>
-                        <div id="bc-tfidf-list-b"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ═══ NER COMPETITOR SIDE-BY-SIDE (raw data) ═══ -->
-        <div class="card bc-card-spacing" id="bc-ner-section">
-            <div class="card-header">
-                <h2>NER Competitor Extraction Comparison</h2>
-            </div>
-            <div class="card-body">
-                <div class="grid-2">
-                    <div>
-                        <h3 id="bc-ner-header-a" style="margin-bottom: 15px;">Brand A Competitors</h3>
-                        <div id="bc-ner-list-a"></div>
-                    </div>
-                    <div>
-                        <h3 id="bc-ner-header-b" style="margin-bottom: 15px;">Brand B Competitors</h3>
-                        <div id="bc-ner-list-b"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ═══ COMPETITOR OVERLAP LIST (all brands — pre-computed) ═══ -->
-        <div class="card bc-card-spacing">
-            <div class="card-header">
-                <h2>Competitor Overlap — All Brands</h2>
+                <h2>Competitor Overlap (NER Extraction)</h2>
+                <span class="font-sm text-muted">Competitors mentioned alongside each brand</span>
             </div>
             <div class="card-body">
                 <div id="bc-competitor-overlap"></div>
             </div>
         </div>
 
-        <!-- ═══ STRATEGY EFFECTIVENESS SIDE-BY-SIDE (raw data) ═══ -->
-        <div class="card bc-card-spacing" id="bc-strategy-section">
+        <!-- Jaccard Similarity Matrix -->
+        <div class="card bc-card-spacing">
             <div class="card-header">
-                <h2>Strategy Effectiveness Comparison</h2>
+                <h2>Jaccard Similarity Matrix</h2>
+                <span class="font-sm text-muted">Keyword overlap between brands (0 = no overlap, 1 = identical)</span>
             </div>
-            <div class="card-body">
-                <div class="grid-2">
-                    <div>
-                        <h3 id="bc-strategy-header-a" style="margin-bottom: 15px;">Brand A</h3>
-                        <div id="bc-strategy-stats-a"></div>
-                    </div>
-                    <div>
-                        <h3 id="bc-strategy-header-b" style="margin-bottom: 15px;">Brand B</h3>
-                        <div id="bc-strategy-stats-b"></div>
-                    </div>
-                </div>
-            </div>
+            <p class="font-sm text-muted" style="margin-bottom: 15px;">
+                Jaccard similarity = (shared keywords) / (total unique keywords). Higher values mean brands share more search terms.
+            </p>
+            <div id="bc-jaccard-matrix"></div>
+            <div id="bc-jaccard-interpretations" class="mt-20"></div>
         </div>
 
-        <!-- ═══ GOOGLE TRENDS COMPARISON CHART (raw data) ═══ -->
-        <div class="card bc-card-spacing" id="bc-trend-section">
+        <!-- Shared Keywords Detail -->
+        <div class="card bc-card-spacing">
             <div class="card-header">
-                <h2>Google Trends Comparison</h2>
+                <h2>Shared Keywords Detail</h2>
+                <span class="font-sm text-muted">Keywords appearing for both selected brands</span>
             </div>
             <div class="card-body">
-                <div class="chart-container" style="height: 400px; position: relative;">
-                    <canvas id="bc-trend-chart"></canvas>
-                </div>
+                <div id="bc-shared-keywords"></div>
             </div>
         </div>
 
@@ -2246,34 +2123,14 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
     <script src="assets/js/config.js"></script>
     <script src="assets/js/timezone.js"></script>
     <script src="assets/js/auth.js"></script>
-    <script src="assets/js/admin.js"></script>
     <script>
         // ============================================
         // Administrator Page Logic
         // ============================================
-        document.addEventListener('DOMContentLoaded', async () => {
+        (async () => {
             // Guard: only administrators can access
             const accessGranted = await checkRoleAccess('administrator');
             if (!accessGranted) return;
-            // Logout button
-            document.getElementById('admin-sidebar').classList.add('visible');
-            document.getElementById('sidebar-toggle').classList.remove('hidden');
-            document.getElementById('admin-content').classList.add('sidebar-open');
-            // Load all data
-            loadPendingUsers();
-            loadExistingUsers();
-            setDefaultInventoryDate();
-            setDefaultRoiDate();
-            loadSearchStrategies();
-            loadBrands();
-            loadAlertsLog();
-            loadPurchaseKeywords();
-            loadBrandComparison();
-            loadEmergingDeclining();
-    // Logout button
-    document.getElementById('sidebar-logout-btn').addEventListener('click', logout);
-});
-    </script>
 
             // Show sidebar and toggle button
             document.getElementById('admin-sidebar').classList.add('visible');
@@ -2298,6 +2155,9 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
             loadBrandComparison();
             loadEmergingDeclining();
             
+            // Logout button
+            document.getElementById('sidebar-logout-btn').addEventListener('click', logout);
+        })();
 
         // ============================================
         // SIDEBAR TOGGLE (for mobile)
@@ -6273,6 +6133,11 @@ window.loadBrandComparison = loadBrandComparison;
 window.renderSideBySideComparison = renderSideBySideComparison;
 window.renderSharedKeywords = renderSharedKeywords;
 }
+
+// Make functions globally accessible
+window.loadBrandComparison = loadBrandComparison;
+window.renderBrandComparison = renderBrandComparison;
+window.resetBrandComparisonSelection = resetBrandComparisonSelection;
 
 // Make functions globally accessible
 window.loadPurchaseKeywords = loadPurchaseKeywords;
