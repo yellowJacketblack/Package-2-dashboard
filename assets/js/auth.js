@@ -57,25 +57,26 @@ async function handleAuthState() {
     // Force clear any lingering session and stop execution
     if (isLogout) {
         console.log('Logout parameter detected. Clearing session and showing login.');
-        await supabaseClient.auth.signOut();
+        try {
+            await supabaseClient.auth.signOut();
+        } catch (e) {
+            console.error('Error during logout signOut:', e);
+        }
+        
+        // Forcefully clear local storage as a fallback
+        try {
+            for (const key in localStorage) {
+                if (key.startsWith('sb-') || key.includes('supabase')) {
+                    localStorage.removeItem(key);
+                }
+            }
+        } catch (e) {
+            console.error('Error clearing local storage:', e);
+        }
+
         // Clean the URL
         window.history.replaceState({}, document.title, window.location.pathname);
-        return;
-    }
-    
-    const { data: { session }, error } = await supabaseClient.auth.getSession();
-
-    if (error) {
-        console.error('Session error:', error);
-        return;
-    }
-
-    console.log('Session object:', session);
-    
-    if (!session) {
-        // No session — show login button (default state)
-        console.log('No session found — showing login button (default state)');
-        return;
+        return; // Stop here so it doesn't redirect to the dashboard
     }
 
     // Extract LINE User ID from session metadata
@@ -307,7 +308,7 @@ async function checkRoleAccess(requiredRole) {
 // ============================================
 async function logout() {
     // Check if supabaseClient is initialized
-     if (typeof supabaseClient === 'undefined') {
+    if (typeof supabaseClient === 'undefined') {
         console.error('supabaseClient not initialized!');
         window.location.href = 'index.html?logout=true';
         return;
@@ -320,9 +321,20 @@ async function logout() {
         console.error('Logout error:', err);
     }
 
+    // Forcefully clear local storage as a fallback
+    try {
+        for (const key in localStorage) {
+            if (key.startsWith('sb-') || key.includes('supabase')) {
+                localStorage.removeItem(key);
+            }
+        }
+    } catch (e) {
+        console.error('Error clearing local storage:', e);
+    }
+
+    // Redirect with logout parameter to prevent auto-login loop
     window.location.href = 'index.html?logout=true';
 }
-
 // ============================================
 // Initialize on page load
 // Only run handleAuthState on index.html (login page)
