@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emerging vs Declining | GIRL, the Butler</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="background-pattern"></div>
+
+    <div class="page-container">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <a href="viewer.html" class="navbar-brand">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+                GIRL, the Butler
+            </a>
+            <div class="navbar-links">
+                <a href="viewer.html" class="navbar-link">Dashboard</a>
+                <a href="index.html" class="navbar-link logout">Logout</a>
+            </div>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>Emerging vs Declining</h1>
+            <p>Monthly comparison of keywords appearing for the first time vs keywords disappearing over time.</p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="ed-loading" class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading emerging vs declining data from The Library...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="ed-error" class="alert alert-danger hidden">
+            <span class="alert-icon">⚠</span>
+            <div class="flex-1">
+                <strong>Error:</strong> <span id="ed-error-text"></span>
+                <button class="btn btn-sm btn-secondary ml-10" onclick="loadEmergingDeclining()">Retry</button>
+            </div>
+        </div>
+
+        <!-- No Data State -->
+        <div id="ed-no-data" class="empty-state hidden">
+            <h3>No Emerging vs Declining Data Available</h3>
+            <p>No keyword emergence analysis results found. This could mean:</p>
+            <ul class="info-list">
+                <li>No inventory prompts have been entered yet</li>
+                <li>The emerging/declining analysis pipeline hasn't run yet</li>
+                <li>The keyword_emergence table is empty</li>
+            </ul>
+            <p class="mt-1rem">Enter inventory prompts via the Administrator Panel, then run the emerging_declining_analysis.py pipeline.</p>
+        </div>
+
+        <!-- Main Content -->
+        <div id="ed-content" class="hidden">
+
+            <!-- Filters -->
+            <div class="card ed-card-spacing">
+                <div class="card-header">
+                    <h2>Filters</h2>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="ed-filter-brand">Brand</label>
+                            <select id="ed-filter-brand" class="form-select" onchange="edApplyFilters()">
+                                <option value="all">All Brands</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="ed-filter-month">Month</label>
+                            <select id="ed-filter-month" class="form-select" onchange="edApplyFilters()">
+                                <option value="all">All Months</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-secondary" onclick="edResetFilters()">Clear Filters</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="stats-grid ed-card-spacing" id="ed-summary-cards"></div>
+
+            <!-- Monthly Trend Chart -->
+            <div class="chart-container ed-card-spacing">
+                <div class="chart-title">Emerging vs Declining Keywords Over Time</div>
+                <div class="ed-chart-wrapper">
+                    <canvas id="ed-trend-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Net Growth Chart -->
+            <div class="chart-container ed-card-spacing">
+                <div class="chart-title">Net Keyword Growth per Brand (Emerging minus Declining)</div>
+                <div class="ed-chart-wrapper">
+                    <canvas id="ed-net-growth-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Side-by-Side Keyword Lists -->
+            <div class="grid-2 ed-card-spacing">
+                <!-- Emerging Keywords -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Emerging Keywords</h2>
+                        <span class="badge badge-success" id="ed-emerging-count">0</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="ed-emerging-list" class="ed-keyword-scroll"></div>
+                    </div>
+                </div>
+
+                <!-- Declining Keywords -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Declining Keywords</h2>
+                        <span class="badge badge-danger" id="ed-declining-count">0</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="ed-declining-list" class="ed-keyword-scroll"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly Comparison Table -->
+            <div class="card ed-card-spacing">
+                <div class="card-header">
+                    <h2>Monthly Comparison by Brand</h2>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="ed-monthly-table">
+                        <thead>
+                            <tr>
+                                <th>Brand</th>
+                                <th>Month</th>
+                                <th>Emerging</th>
+                                <th>Declining</th>
+                                <th>Net Growth</th>
+                                <th>Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ed-monthly-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Brand Summary Table -->
+            <div class="card ed-card-spacing">
+                <div class="card-header">
+                    <h2>Brand Summary (All Time)</h2>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="ed-brand-summary-table">
+                        <thead>
+                            <tr>
+                                <th>Brand</th>
+                                <th>Total Emerging</th>
+                                <th>Total Declining</th>
+                                <th>Net Growth</th>
+                                <th>Growth Rate</th>
+                                <th>Months Tracked</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ed-brand-summary-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <footer class="footer">
+            <p>&copy; 2026 GIRL, the Butler</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script src="assets/js/timezone.js"></script>
+    <script>
+        // Check role access (Viewer, Seller, or Administrator)
+        checkRoleAccess(['viewer', 'seller', 'administrator']);
+
+        // ============================================
+        // Emerging vs Declining Logic
+        // ============================================
+        let edChart = null;
+        let edNetGrowthChart = null;
+        let edAllData = {};
+        let edAvailableBrands = [];
+        let edAvailableMonths = [];
+
+        // Fetch all emerging/declining analysis results
+        async function fetchEmergingDecliningData() {
+            const { data, error } = await supabaseClient
+                .from('analysis_results')
+                .select('*')
+                .like('analysis_type', 'emerging_declining_%')
+                .order('computed_at', { ascending: false });
+
+            if (error) throw error;
+
+            const grouped = {};
+            for (const row of data) {
+                const key = row.analysis_type.replace('emerging_declining_', '');
+                if (!grouped[key]) {
+                    grouped[key] = JSON.parse(row.results);
+                }
+            }
+
+            return grouped;
+        }
+
+        // State management
+        function edShowLoading() {
+            document.getElementById('ed-loading').classList.remove('hidden');
+            document.getElementById('ed-error').classList.add('hidden');
+            document.getElementById('ed-no-data').classList.add('hidden');
+            document.getElementById('ed-content').classList.add('hidden');
+        }
+
+        function edShowError(message) {
+            document.getElementById('ed-loading').classList.add('hidden');
+            document.getElementById('ed-error').classList.remove('hidden');
+            document.getElementById('ed-error-text').textContent = message;
+        }
+
+        function edShowNoData() {
+            document.getElementById('ed-loading').classList.add('hidden');
+            document.getElementById('ed-no-data').classList.remove('hidden');
+        }
+
+        function edShowContent() {
+            document.getElementById('ed-loading').classList.add('hidden');
+            document.getElementById('ed-content').classList.remove('hidden');
+        }
+
+        // Populate filter dropdowns
+        function edPopulateFilters() {
+            const brandSelect = document.getElementById('ed-filter-brand');
+            const monthSelect = document.getElementById('ed-filter-month');
+
+            // Keep "All" option, clear the rest
+            brandSelect.innerHTML = '<option value="all">All Brands</option>';
+            monthSelect.innerHTML = '<option value="all">All Months</option>';
+
+            for (const brand of edAvailableBrands) {
+                const opt = document.createElement('option');
+                opt.value = brand;
+                opt.textContent = brand;
+                brandSelect.appendChild(opt);
+            }
+
+            for (const month of edAvailableMonths) {
+                const opt = document.createElement('option');
+                opt.value = month;
+                opt.textContent = month;
+                monthSelect.appendChild(opt);
+            }
+        }
+
+        // Get filtered data based on current filter selections
+        function edGetFilteredData() {
+            const brandFilter = document.getElementById('ed-filter-brand').value;
+            const monthFilter = document.getElementById('ed-filter-month').value;
+
+            const summary = edAllData.summary || {};
+            const trends = edAllData.trends || [];
+            const keywords = edAllData.keywords || [];
+
+            // Filter trends
+            let filteredTrends = trends;
+            if (brandFilter !== 'all') {
+                filteredTrends = filteredTrends.filter(t => t.brand === brandFilter);
+            }
+            if (monthFilter !== 'all') {
+                filteredTrends = filteredTrends.filter(t => t.month === monthFilter);
+            }
+
+            // Filter keywords
+            let filteredKeywords = keywords;
+            if (brandFilter !== 'all') {
+                filteredKeywords = filteredKeywords.filter(k => k.brand === brandFilter);
+            }
+            if (monthFilter !== 'all') {
+                filteredKeywords = filteredKeywords.filter(k => k.month === monthFilter);
+            }
+
+            // Filter brand summary
+            let filteredBrandSummary = summary.brand_summary || [];
+            if (brandFilter !== 'all') {
+                filteredBrandSummary = filteredBrandSummary.filter(b => b.brand === brandFilter);
+            }
+
+            return {
+                trends: filteredTrends,
+                keywords: filteredKeywords,
+                brandSummary: filteredBrandSummary,
+                overall: summary.overall || {}
+            };
+        }
+
+        // Render summary cards
+        function edRenderSummaryCards(data) {
+            const container = document.getElementById('ed-summary-cards');
+            container.innerHTML = '';
+
+            const overall = data.overall || {};
+            const totalEmerging = overall.total_emerging || 0;
+            const totalDeclining = overall.total_declining || 0;
+            const netGrowth = totalEmerging - totalDeclining;
+            const brandsTracked = (data.brandSummary || []).length;
+            const monthsTracked = edAvailableMonths.length;
+            const growthRate = totalDeclining > 0 
+                ? ((totalEmerging - totalDeclining) / totalDeclining * 100).toFixed(1) + '%'
+                : 'N/A';
+
+            const cards = [
+                { label: 'Total Emerging', value: totalEmerging, class: 'success' },
+                { label: 'Total Declining', value: totalDeclining, class: 'danger' },
+                { label: 'Net Growth', value: netGrowth >= 0 ? '+' + netGrowth : netGrowth, class: netGrowth >= 0 ? 'success' : 'danger' },
+                { label: 'Growth Rate', value: growthRate, class: netGrowth >= 0 ? 'success' : 'danger' },
+                { label: 'Brands Tracked', value: brandsTracked, class: '' },
+                { label: 'Months Tracked', value: monthsTracked, class: '' }
+            ];
+
+            for (const card of cards) {
+                const div = document.createElement('div');
+                div.className = 'stat-card';
+                if (card.class) div.classList.add(card.class);
+                div.innerHTML = `
+                    <div class="stat-value">${card.value}</div>
+                    <div class="stat-label">${card.label}</div>
+                `;
+                container.appendChild(div);
+            }
+        }
+
+        // Render trend chart (emerging vs declining over time)
+        function edRenderTrendChart(data) {
+            const ctx = document.getElementById('ed-trend-chart').getContext('2d');
+            const trends = data.trends || [];
+
+            if (trends.length === 0) {
+                if (edChart) {
+                    edChart.destroy();
+                    edChart = null;
+                }
+                return;
+            }
+
+            // Group by month
+            const monthlyData = {};
+            for (const t of trends) {
+                if (!monthlyData[t.month]) {
+                    monthlyData[t.month] = { emerging: 0, declining: 0 };
+                }
+                monthlyData[t.month].emerging += t.emerging_count || 0;
+                monthlyData[t.month].declining += t.declining_count || 0;
+            }
+
+            const sortedMonths = Object.keys(monthlyData).sort();
+            const emergingData = sortedMonths.map(m => monthlyData[m].emerging);
+            const decliningData = sortedMonths.map(m => monthlyData[m].declining);
+
+            if (edChart) {
+                edChart.destroy();
+            }
+
+            edChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sortedMonths,
+                    datasets: [
+                        {
+                            label: 'Emerging Keywords',
+                            data: emergingData,
+                            borderColor: '#06C755',
+                            backgroundColor: 'rgba(6, 199, 85, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: 'Declining Keywords',
+                            data: decliningData,
+                            borderColor: '#ff6b6b',
+                            backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.raw;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Month' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Keyword Count' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render net growth chart per brand
+        function edRenderNetGrowthChart(data) {
+            const ctx = document.getElementById('ed-net-growth-chart').getContext('2d');
+            const brandSummary = data.brandSummary || [];
+
+            if (brandSummary.length === 0) {
+                if (edNetGrowthChart) {
+                    edNetGrowthChart.destroy();
+                    edNetGrowthChart = null;
+                }
+                return;
+            }
+
+            const labels = brandSummary.map(b => b.brand);
+            const netGrowthData = brandSummary.map(b => (b.total_emerging || 0) - (b.total_declining || 0));
+
+            const barColors = netGrowthData.map(v => v >= 0 ? '#06C755' : '#ff6b6b');
+
+            if (edNetGrowthChart) {
+                edNetGrowthChart.destroy();
+            }
+
+            edNetGrowthChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Net Growth',
+                        data: netGrowthData,
+                        backgroundColor: barColors,
+                        borderColor: '#2d2d2d',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const val = context.raw;
+                                    return 'Net Growth: ' + (val >= 0 ? '+' : '') + val;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Brand' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Net Keyword Growth' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render emerging and declining keyword lists
+        function edRenderKeywordLists(data) {
+            const keywords = data.keywords || [];
+            const emergingList = document.getElementById('ed-emerging-list');
+            const decliningList = document.getElementById('ed-declining-list');
+            const emergingCountEl = document.getElementById('ed-emerging-count');
+            const decliningCountEl = document.getElementById('ed-declining-count');
+
+            const emergingKeywords = keywords.filter(k => k.type === 'emerging' && k.keyword);
+            const decliningKeywords = keywords.filter(k => k.type === 'declining' && k.keyword);
+
+            // Sort by date descending
+            emergingKeywords.sort((a, b) => (b.date_tracked || '').localeCompare(a.date_tracked || ''));
+            decliningKeywords.sort((a, b) => (b.date_tracked || '').localeCompare(a.date_tracked || ''));
+
+            emergingCountEl.textContent = emergingKeywords.length;
+            decliningCountEl.textContent = decliningKeywords.length;
+
+            // Render emerging
+            if (emergingKeywords.length === 0) {
+                emergingList.innerHTML = '<p class="font-sm ed-no-data-text">No emerging keywords found for current filters.</p>';
+            } else {
+                emergingList.innerHTML = emergingKeywords.map(k => `
+                    <div class="list-item ed-keyword-item ed-emerging-item">
+                        <div class="list-item-content">
+                            <div class="list-item-title">
+                                <span class="badge badge-admin">${k.brand}</span>
+                                ${k.keyword}
+                            </div>
+                            <div class="list-item-subtitle">
+                                Tracked: ${k.date_tracked || k.month || 'N/A'}
+                            </div>
+                        </div>
+                        <div class="list-item-actions">
+                            <span class="badge badge-success">↑ Emerging</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Render declining
+            if (decliningKeywords.length === 0) {
+                decliningList.innerHTML = '<p class="font-sm ed-no-data-text">No declining keywords found for current filters.</p>';
+            } else {
+                decliningList.innerHTML = decliningKeywords.map(k => `
+                    <div class="list-item ed-keyword-item ed-declining-item">
+                        <div class="list-item-content">
+                            <div class="list-item-title">
+                                <span class="badge badge-admin">${k.brand}</span>
+                                ${k.keyword}
+                            </div>
+                            <div class="list-item-subtitle">
+                                Tracked: ${k.date_tracked || k.month || 'N/A'}
+                            </div>
+                        </div>
+                        <div class="list-item-actions">
+                            <span class="badge badge-danger">↓ Declining</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Render monthly comparison table
+        function edRenderMonthlyTable(data) {
+            const tbody = document.getElementById('ed-monthly-tbody');
+            const trends = data.trends || [];
+
+            if (trends.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="ed-empty-row">No monthly data available.</td></tr>';
+                return;
+            }
+
+            // Sort by month descending, then brand
+            trends.sort((a, b) => {
+                if (b.month !== a.month) return (b.month || '').localeCompare(a.month || '');
+                return (a.brand || '').localeCompare(b.brand || '');
+            });
+
+            tbody.innerHTML = trends.map(t => {
+                const emerging = t.emerging_count || 0;
+                const declining = t.declining_count || 0;
+                const net = emerging - declining;
+                const trendIcon = net > 0 ? '↑' : net < 0 ? '↓' : '→';
+                const trendClass = net > 0 ? 'text-success' : net < 0 ? 'text-danger' : 'text-muted';
+
+                return `
+                    <tr>
+                        <td><span class="badge badge-admin">${t.brand}</span></td>
+                        <td>${t.month || 'N/A'}</td>
+                        <td class="text-success font-bold">${emerging}</td>
+                        <td class="text-danger font-bold">${declining}</td>
+                        <td class="${trendClass} font-bold">${net >= 0 ? '+' : ''}${net}</td>
+                        <td class="${trendClass} font-bold">${trendIcon}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Render brand summary table
+        function edRenderBrandSummaryTable(data) {
+            const tbody = document.getElementById('ed-brand-summary-tbody');
+            const brandSummary = data.brandSummary || [];
+
+            if (brandSummary.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="ed-empty-row">No brand summary data available.</td></tr>';
+                return;
+            }
+
+            // Sort by net growth descending
+            brandSummary.sort((a, b) => {
+                const netA = (a.total_emerging || 0) - (a.total_declining || 0);
+                const netB = (b.total_emerging || 0) - (b.total_declining || 0);
+                return netB - netA;
+            });
+
+            tbody.innerHTML = brandSummary.map(b => {
+                const emerging = b.total_emerging || 0;
+                const declining = b.total_declining || 0;
+                const net = emerging - declining;
+                const growthRate = declining > 0 
+                    ? ((emerging - declining) / declining * 100).toFixed(1) + '%' 
+                    : 'N/A';
+                const monthsTracked = b.months_tracked || 0;
+                
+                let statusBadge = '';
+                if (net > 0) {
+                    statusBadge = '<span class="badge badge-success">Growing</span>';
+                } else if (net < 0) {
+                    statusBadge = '<span class="badge badge-danger">Declining</span>';
+                } else {
+                    statusBadge = '<span class="badge badge-neutral">Stable</span>';
+                }
+
+                return `
+                    <tr>
+                        <td><span class="badge badge-admin">${b.brand}</span></td>
+                        <td class="text-success font-bold">${emerging}</td>
+                        <td class="text-danger font-bold">${declining}</td>
+                        <td class="${net >= 0 ? 'text-success' : 'text-danger'} font-bold">${net >= 0 ? '+' : ''}${net}</td>
+                        <td>${growthRate}</td>
+                        <td>${monthsTracked}</td>
+                        <td>${statusBadge}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Collect available brands and months from data
+        function edCollectFilters() {
+            const brandSet = new Set();
+            const monthSet = new Set();
+
+            const trends = edAllData.trends || [];
+            const keywords = edAllData.keywords || [];
+            const summary = edAllData.summary || {};
+            const brandSummary = summary.brand_summary || [];
+
+            for (const t of trends) {
+                if (t.brand) brandSet.add(t.brand);
+                if (t.month) monthSet.add(t.month);
+            }
+
+            for (const k of keywords) {
+                if (k.brand) brandSet.add(k.brand);
+                if (k.month) monthSet.add(k.month);
+            }
+
+            for (const b of brandSummary) {
+                if (b.brand) brandSet.add(b.brand);
+            }
+
+            edAvailableBrands = [...brandSet].sort();
+            edAvailableMonths = [...monthSet].sort();
+        }
+
+        // Apply filters and re-render
+        function edApplyFilters() {
+            const data = edGetFilteredData();
+            edRenderSummaryCards({ overall: edAllData.summary?.overall || {}, brandSummary: data.brandSummary });
+            edRenderTrendChart(data);
+            edRenderNetGrowthChart(data);
+            edRenderKeywordLists(data);
+            edRenderMonthlyTable(data);
+            edRenderBrandSummaryTable(data);
+        }
+
+        // Reset filters
+        function edResetFilters() {
+            document.getElementById('ed-filter-brand').value = 'all';
+            document.getElementById('ed-filter-month').value = 'all';
+            edApplyFilters();
+        }
+
+        // Main load function
+        async function loadEmergingDeclining() {
+            edShowLoading();
+
+            try {
+                const data = await fetchEmergingDecliningData();
+
+                const hasData = Object.keys(data).length > 0 && (data.summary || data.trends || data.keywords);
+
+                if (!hasData) {
+                    edShowNoData();
+                    return;
+                }
+
+                edAllData = data;
+
+                // Collect available brands and months for filters
+                edCollectFilters();
+                edPopulateFilters();
+
+                // Initial render with no filters
+                edApplyFilters();
+
+                edShowContent();
+
+            } catch (error) {
+                console.error('Error loading emerging vs declining:', error);
+                edShowError(error.message || 'Failed to load data from Supabase.');
+            }
+        }
+
+        // Make functions globally accessible
+        window.loadEmergingDeclining = loadEmergingDeclining;
+        window.edApplyFilters = edApplyFilters;
+        window.edResetFilters = edResetFilters;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', loadEmergingDeclining);
+    </script>
+</body>
+</html>
