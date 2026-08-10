@@ -2215,28 +2215,173 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
     </div>
 </div>
 
-            <!-- ============================================
-                 PAGE 14: KEYWORD DISCOVERY (Placeholder)
-                 ============================================ -->
-            <div id="page-keyword-discovery" class="admin-page">
-                <div class="page-header">
-                    <h1>Keyword Discovery</h1>
-                    <p>AnswerThePublic keyword results with TF-IDF importance scores.</p>
-                </div>
-                <div class="coming-soon">
-                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#2d2d2d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8"/>
-                        <path d="M21 21l-4.35-4.35"/>
-                        <path d="M8 11h6"/>
-                        <path d="M11 8v6"/>
-                    </svg>
-                    <h3>Coming Soon</h3>
-                    <p>This report will pull from <code>inventory_prompts</code> and <code>tfidf_results</code>.</p>
-                </div>
-            </div>
+<!-- ============================================
+     PAGE 14: KEYWORD DISCOVERY
+     ============================================ -->
+<div id="page-keyword-discovery" class="admin-page">
+    <div class="page-header">
+        <h1>Keyword Discovery</h1>
+        <p>Google Trends and AnswerThePublic keyword results with Social Media Algorithm scoring for feed ranking.</p>
+    </div>
 
+    <!-- Loading State -->
+    <div id="kd-loading" class="loading">
+        <div class="loading-spinner"></div>
+        <p>Loading keyword discovery data from The Library...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="kd-error" class="alert alert-danger hidden">
+        <span class="alert-icon">⚠</span>
+        <div style="flex: 1;">
+            <strong>Error:</strong> <span id="kd-error-text"></span>
+            <button class="btn btn-sm btn-secondary" onclick="loadKeywordDiscovery()" style="margin-left: 10px;">Retry</button>
         </div>
     </div>
+
+    <!-- No Data State -->
+    <div id="kd-no-data" class="empty-state hidden">
+        <h3>No Keyword Discovery Data Available</h3>
+        <p>No keyword discovery analysis results found. This could mean:</p>
+        <ul style="text-align: left; max-width: 500px; margin: 1rem auto; list-style: disc; padding-left: 40px;">
+            <li>No inventory prompts have been entered yet</li>
+            <li>No Google Trends related queries have been uploaded</li>
+            <li>The keyword discovery analysis pipeline hasn't run yet</li>
+        </ul>
+        <p style="margin-top: 1rem;">Enter inventory prompts via Page 2, upload Google Trends CSVs via Page 4, then run the keyword_discovery_analysis.py pipeline.</p>
+    </div>
+
+    <!-- Main Content -->
+    <div id="kd-content" class="hidden">
+
+        <!-- Summary Cards -->
+        <div class="stats-grid kd-card-spacing" id="kd-summary-cards"></div>
+
+        <!-- Filters -->
+        <div class="card kd-card-spacing">
+            <div class="card-header">
+                <h2>Filters</h2>
+            </div>
+            <div class="card-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="kd-filter-brand">Brand</label>
+                        <input type="text" id="kd-filter-brand" class="form-input" placeholder="All brands">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="kd-filter-category">Category</label>
+                        <select id="kd-filter-category" class="form-select">
+                            <option value="all">All Categories</option>
+                            <option value="bags">Bags</option>
+                            <option value="wallets">Wallets</option>
+                            <option value="backpacks">Backpacks</option>
+                            <option value="accessories">Accessories</option>
+                            <option value="shoes">Shoes</option>
+                            <option value="clothing">Clothing</option>
+                            <option value="other">Other</option>
+                            <option value="N/A">N/A (Google Trends)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="kd-filter-signal">Search Volume Signal</label>
+                        <select id="kd-filter-signal" class="form-select">
+                            <option value="all">All Signals</option>
+                            <option value="rising">Rising (trending up)</option>
+                            <option value="high">High (100K+ searches)</option>
+                            <option value="medium">Medium (10K-100K)</option>
+                            <option value="low">Low (1K-10K)</option>
+                            <option value="very-low">Very Low (< 1K)</option>
+                            <option value="declining">Declining</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="kd-filter-source">Source</label>
+                        <select id="kd-filter-source" class="form-select">
+                            <option value="all">All Sources</option>
+                            <option value="atpp">AnswerThePublic</option>
+                            <option value="google_trends">Google Trends</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-secondary" onclick="kdApplyFilters()">Apply Filters</button>
+                    <button class="btn btn-secondary" onclick="kdResetFilters()">Clear Filters</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Keywords Table -->
+        <div class="card kd-card-spacing">
+            <div class="card-header">
+                <h2>Ranked Keywords <span id="kd-count" class="font-sm" style="color: #555; font-weight: normal;"></span></h2>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="kd-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Brand</th>
+                            <th>Keyword</th>
+                            <th>Source</th>
+                            <th>Category</th>
+                            <th>Signal</th>
+                            <th>TF-IDF</th>
+                            <th>Social Media Score</th>
+                            <th>Recommendation</th>
+                            <th>Date Captured</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kd-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Keyword Details Modal -->
+        <div id="kd-detail-modal" class="evidence-modal-overlay hidden" onclick="closeKdDetailModal(event)">
+            <div class="evidence-modal-box" onclick="event.stopPropagation()" style="max-width: 700px;">
+                <div class="evidence-modal-header">
+                    <h3>Keyword Details</h3>
+                    <button type="button" class="alert-close" onclick="closeKdDetailModal()">×</button>
+                </div>
+                <div class="evidence-modal-body">
+                    <div id="kd-detail-content">
+                        <p>Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Series Chart -->
+        <div class="chart-container kd-card-spacing">
+            <div class="chart-title">Keyword Discovery Over Time</div>
+            <div class="kd-chart-wrapper">
+                <canvas id="kd-time-series-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Keyword Patterns -->
+        <div class="card kd-card-spacing">
+            <div class="card-header">
+                <h2>Keyword Patterns (Consistent Keywords)</h2>
+                <span class="font-sm text-muted">Keywords appearing 2+ times show algorithmic consistency</span>
+            </div>
+            <div class="card-body">
+                <div id="kd-patterns-list"></div>
+            </div>
+        </div>
+
+        <!-- Signal Distribution -->
+        <div class="card kd-card-spacing">
+            <div class="card-header">
+                <h2>Search Volume Signal Distribution</h2>
+            </div>
+            <div class="card-body">
+                <div id="kd-signal-distribution"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
 
     <footer class="footer">
         <p>&copy; 2026 GIRL, the Butler</p>
@@ -2270,6 +2415,7 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
             loadPurchaseKeywords();
             loadBrandComparison();
             loadEmergingDeclining();
+            loadKeywordDiscovery();
     // Logout button
     document.getElementById('sidebar-logout-btn').addEventListener('click', logout);
 });
@@ -5798,6 +5944,434 @@ async function loadEmergingDeclining() {
         console.error('Error loading emerging vs declining:', error);
         edShowError(error.message || 'Failed to load data from Supabase.');
     }
+    // ============================================
+// SECTION: Page 14 — Keyword Discovery
+// ============================================
+
+let kdAllKeywords = [];
+let kdTimeSeriesData = [];
+let kdPatternsData = [];
+let kdSummaryData = {};
+let kdChart = null;
+
+// Fetch all keyword discovery data from analysis_results
+async function fetchKeywordDiscoveryData() {
+    const { data, error } = await supabaseClient
+        .from('analysis_results')
+        .select('*')
+        .like('analysis_type', 'keyword_discovery_%')
+        .order('computed_at', { ascending: false });
+
+    if (error) throw error;
+
+    const grouped = {};
+    for (const row of data) {
+        const key = row.analysis_type.replace('keyword_discovery_', '');
+        if (!grouped[key]) {
+            grouped[key] = JSON.parse(row.results);
+        }
+    }
+
+    return grouped;
+}
+
+// State management
+function kdShowLoading() {
+    document.getElementById('kd-loading').classList.remove('hidden');
+    document.getElementById('kd-error').classList.add('hidden');
+    document.getElementById('kd-no-data').classList.add('hidden');
+    document.getElementById('kd-content').classList.add('hidden');
+}
+
+function kdShowError(message) {
+    document.getElementById('kd-loading').classList.add('hidden');
+    document.getElementById('kd-error').classList.remove('hidden');
+    document.getElementById('kd-error-text').textContent = message;
+}
+
+function kdShowNoData() {
+    document.getElementById('kd-loading').classList.add('hidden');
+    document.getElementById('kd-no-data').classList.remove('hidden');
+}
+
+function kdShowContent() {
+    document.getElementById('kd-loading').classList.add('hidden');
+    document.getElementById('kd-content').classList.remove('hidden');
+}
+
+// Get signal badge
+function kdGetSignalBadge(signal) {
+    const signalMap = {
+        'rising': 'badge-success',
+        'high': 'badge-info',
+        'medium': 'badge-neutral',
+        'low': 'badge-warning',
+        'very-low': 'badge-neutral',
+        'declining': 'badge-danger'
+    };
+    const badgeClass = signalMap[signal] || 'badge-neutral';
+    return '<span class="badge ' + badgeClass + '">' + signal + '</span>';
+}
+
+// Get source badge
+function kdGetSourceBadge(source) {
+    if (source === 'atpp') {
+        return '<span class="badge badge-admin">ATPP</span>';
+    } else if (source === 'google_trends') {
+        return '<span class="badge badge-info">Google Trends</span>';
+    }
+    return '<span class="badge badge-neutral">' + source + '</span>';
+}
+
+// Get score badge
+function kdGetScoreBadge(score) {
+    let badgeClass = 'badge-neutral';
+    if (score >= 80) badgeClass = 'badge-success';
+    else if (score >= 65) badgeClass = 'badge-info';
+    else if (score >= 50) badgeClass = 'badge-warning';
+    else if (score < 35) badgeClass = 'badge-danger';
+    
+    return '<span class="badge ' + badgeClass + '">' + score + '</span>';
+}
+
+// Render summary cards
+function kdRenderSummaryCards(data) {
+    const container = document.getElementById('kd-summary-cards');
+    container.innerHTML = '';
+
+    const summary = data.summary || {};
+    
+    const cards = [
+        { label: 'Total Keywords', value: summary.total_keywords_discovered || 0, class: '' },
+        { label: 'ATPP Keywords', value: summary.atpp_keyword_count || 0, class: 'admin' },
+        { label: 'Google Trends Keywords', value: summary.google_trends_keyword_count || 0, class: 'info' },
+        { label: 'Top Brand', value: summary.top_brand || 'N/A', class: 'seller' },
+        { label: 'High Priority (65+)', value: summary.high_priority_keywords || 0, class: 'success' },
+        { label: 'Avg Social Score', value: summary.average_social_media_score || 0, class: 'warning' },
+        { label: 'Patterned Keywords', value: summary.patterned_keywords || 0, class: '' },
+        { label: 'Brands Analyzed', value: summary.brands_analyzed || 0, class: '' }
+    ];
+
+    for (const card of cards) {
+        const div = document.createElement('div');
+        div.className = 'stat-card';
+        if (card.class) div.classList.add(card.class);
+        div.innerHTML = `
+            <div class="stat-value">${card.value}</div>
+            <div class="stat-label">${card.label}</div>
+        `;
+        container.appendChild(div);
+    }
+}
+
+// Render keywords table
+function kdRenderTable(data) {
+    const tbody = document.getElementById('kd-tbody');
+    const countEl = document.getElementById('kd-count');
+    tbody.innerHTML = '';
+
+    const allKeywordsData = data.all_keywords || {};
+    let keywords = allKeywordsData.keywords || [];
+
+    kdAllKeywords = keywords;
+
+    // Apply filters
+    const brandFilter = document.getElementById('kd-filter-brand').value.trim().toLowerCase();
+    const categoryFilter = document.getElementById('kd-filter-category').value;
+    const signalFilter = document.getElementById('kd-filter-signal').value;
+    const sourceFilter = document.getElementById('kd-filter-source').value;
+
+    let filtered = keywords;
+    if (brandFilter) {
+        filtered = filtered.filter(k => k.brand.toLowerCase().includes(brandFilter));
+    }
+    if (categoryFilter !== 'all') {
+        filtered = filtered.filter(k => k.category === categoryFilter);
+    }
+    if (signalFilter !== 'all') {
+        filtered = filtered.filter(k => k.search_volume_signal === signalFilter);
+    }
+    if (sourceFilter !== 'all') {
+        filtered = filtered.filter(k => k.source === sourceFilter);
+    }
+
+    if (countEl) countEl.textContent = '(' + filtered.length + ')';
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 30px; color: #666;">No keywords match your filters.</td></tr>';
+        return;
+    }
+
+    filtered.forEach((item, idx) => {
+        const row = document.createElement('tr');
+        row.style.cursor = 'pointer';
+        row.onclick = () => showKeywordDetail(item);
+        
+        row.innerHTML = `
+            <td><strong>${idx + 1}</strong></td>
+            <td><span class="badge badge-admin">${item.brand}</span></td>
+            <td>${item.keyword}</td>
+            <td>${kdGetSourceBadge(item.source)}</td>
+            <td>${item.category || 'N/A'}</td>
+            <td>${kdGetSignalBadge(item.search_volume_signal)}</td>
+            <td>${item.tfidf_score || 'N/A'}</td>
+            <td>${kdGetScoreBadge(item.social_media_score)}</td>
+            <td class="font-sm">${item.recommendation ? item.recommendation.substring(0, 50) + '...' : 'N/A'}</td>
+            <td class="font-sm">${item.date_captured || 'N/A'}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// Show keyword detail in modal
+function showKeywordDetail(keyword) {
+    const modal = document.getElementById('kd-detail-modal');
+    const content = document.getElementById('kd-detail-content');
+
+    modal.classList.remove('hidden');
+
+    let html = '<div style="margin-bottom: 20px;">';
+    html += `<p><strong>Brand:</strong> ${keyword.brand}</p>`;
+    html += `<p><strong>Keyword:</strong> ${keyword.keyword}</p>`;
+    html += `<p><strong>Source:</strong> ${kdGetSourceBadge(keyword.source)}</p>`;
+    html += `<p><strong>Category:</strong> ${keyword.category || 'N/A'}</p>`;
+    html += `<p><strong>Search Volume Signal:</strong> ${kdGetSignalBadge(keyword.search_volume_signal)}</p>`;
+    html += `<p><strong>Date Captured:</strong> ${keyword.date_captured || 'N/A'}</p>`;
+    html += '</div>';
+
+    html += '<h4>Social Media Algorithm Scores</h4>';
+    html += '<div class="stats-grid" style="margin-bottom: 20px;">';
+    html += `<div class="stat-card ${keyword.social_media_score >= 65 ? 'success' : ''}"><div class="stat-value">${keyword.social_media_score}</div><div class="stat-label">Composite Score</div></div>`;
+    html += `<div class="stat-card"><div class="stat-value">${keyword.tfidf_normalized || 0}</div><div class="stat-label">TF-IDF (normalized)</div></div>`;
+    html += `<div class="stat-card"><div class="stat-value">${keyword.signal_score || 0}</div><div class="stat-label">Signal Score</div></div>`;
+    html += `<div class="stat-card"><div class="stat-value">${keyword.recency_score || 0}</div><div class="stat-label">Recency Score</div></div>`;
+    html += `<div class="stat-card"><div class="stat-value">${keyword.frequency_score || 0}</div><div class="stat-label">Frequency Score</div></div>`;
+    html += '</div>';
+
+    html += '<h4>Recommendation</h4>';
+    html += `<p style="margin-bottom: 15px;">${keyword.recommendation || 'N/A'}</p>`;
+
+    html += '<h4>Posting Timing Strategy</h4>';
+    html += `<p style="margin-bottom: 15px;">${keyword.posting_timing || 'N/A'}</p>`;
+
+    if (keyword.frequency_count) {
+        html += `<p><strong>Frequency Count:</strong> ${keyword.frequency_count} appearance(s) in time series</p>`;
+    }
+
+    if (keyword.trend_value) {
+        html += `<p><strong>Google Trends Value:</strong> ${keyword.trend_value}</p>`;
+    }
+
+    content.innerHTML = html;
+}
+
+// Close detail modal
+function closeKdDetailModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('kd-detail-modal').classList.add('hidden');
+}
+
+// Render time series chart
+function kdRenderTimeSeriesChart(data) {
+    const ctx = document.getElementById('kd-time-series-chart').getContext('2d');
+    const timeSeries = data.time_series || [];
+
+    if (timeSeries.length === 0) {
+        if (kdChart) {
+            kdChart.destroy();
+            kdChart = null;
+        }
+        return;
+    }
+
+    const labels = timeSeries.map(t => t.date);
+    const keywordCounts = timeSeries.map(t => t.total_keywords);
+    const brandCounts = timeSeries.map(t => t.unique_brands);
+
+    if (kdChart) {
+        kdChart.destroy();
+    }
+
+    kdChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Keywords Discovered',
+                    data: keywordCounts,
+                    borderColor: '#a18cd1',
+                    backgroundColor: 'rgba(161, 140, 209, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                },
+                {
+                    label: 'Unique Brands',
+                    data: brandCounts,
+                    borderColor: '#4ecdc4',
+                    backgroundColor: 'rgba(78, 205, 196, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.raw;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: 'Date' }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Count' }
+                }
+            }
+        }
+    });
+}
+
+// Render keyword patterns
+function kdRenderPatterns(data) {
+    const container = document.getElementById('kd-patterns-list');
+    const patterns = data.keyword_patterns || [];
+
+    if (patterns.length === 0) {
+        container.innerHTML = '<p class="font-sm" style="color: #666;">No keyword patterns detected. Enter more inventory prompts over time to identify consistent keywords.</p>';
+        return;
+    }
+
+    const patternTypeMap = {
+        'consistently_rising': { class: 'badge-success', label: 'Consistently Rising' },
+        'consistently_declining': { class: 'badge-danger', label: 'Consistently Declining' },
+        'volatile': { class: 'badge-warning', label: 'Volatile' },
+        'stable': { class: 'badge-info', label: 'Stable' }
+    };
+
+    container.innerHTML = patterns.map(p => {
+        const patternBadge = patternTypeMap[p.pattern_type] || { class: 'badge-neutral', label: p.pattern_type };
+        return `
+            <div class="list-item">
+                <div class="list-item-content">
+                    <div class="list-item-title">
+                        <span class="badge badge-admin">${p.brand}</span>
+                        ${p.keyword}
+                        <span class="badge ${patternBadge.class}">${patternBadge.label}</span>
+                    </div>
+                    <div class="list-item-subtitle">
+                        Appearances: ${p.appearance_count} | 
+                        First: ${p.first_seen || 'N/A'} | 
+                        Last: ${p.last_seen || 'N/A'}
+                        ${p.categories.length > 0 ? ' | Categories: ' + p.categories.join(', ') : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Render signal distribution
+function kdRenderSignalDistribution(data) {
+    const container = document.getElementById('kd-signal-distribution');
+    const summary = data.summary || {};
+    const distribution = summary.signal_distribution || {};
+
+    if (Object.keys(distribution).length === 0) {
+        container.innerHTML = '<p class="font-sm" style="color: #666;">No signal distribution data available.</p>';
+        return;
+    }
+
+    const total = Object.values(distribution).reduce((a, b) => a + b, 0);
+    
+    container.innerHTML = '<div class="bar-chart">' + Object.entries(distribution).map(([signal, count]) => {
+        const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+        const signalClass = signal === 'rising' ? 'fill-primary' : 
+                           signal === 'high' ? 'fill-secondary' :
+                           signal === 'declining' ? 'fill-admin' : 'fill-accent';
+        return `
+            <div class="bar-chart-row">
+                <div class="bar-chart-label">${signal}</div>
+                <div class="bar-chart-track">
+                    <div class="bar-chart-fill ${signalClass}" style="width: ${percentage}%;">
+                        ${count} (${percentage}%)
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('') + '</div>';
+}
+
+// Apply filters
+function kdApplyFilters() {
+    const data = {
+        all_keywords: { keywords: kdAllKeywords },
+        summary: kdSummaryData,
+        time_series: kdTimeSeriesData,
+        keyword_patterns: kdPatternsData
+    };
+    kdRenderTable(data);
+}
+
+// Reset filters
+function kdResetFilters() {
+    document.getElementById('kd-filter-brand').value = '';
+    document.getElementById('kd-filter-category').value = 'all';
+    document.getElementById('kd-filter-signal').value = 'all';
+    document.getElementById('kd-filter-source').value = 'all';
+    kdApplyFilters();
+}
+
+// Main load function
+async function loadKeywordDiscovery() {
+    kdShowLoading();
+
+    try {
+        const data = await fetchKeywordDiscoveryData();
+
+        const hasData = Object.keys(data).length > 0 && data.summary;
+
+        if (!hasData) {
+            kdShowNoData();
+            return;
+        }
+
+        kdSummaryData = data.summary || {};
+        kdTimeSeriesData = data.time_series || [];
+        kdPatternsData = data.keyword_patterns || [];
+
+        kdRenderSummaryCards(data);
+        kdRenderTable(data);
+        kdRenderTimeSeriesChart(data);
+        kdRenderPatterns(data);
+        kdRenderSignalDistribution(data);
+
+        kdShowContent();
+
+    } catch (error) {
+        console.error('Error loading keyword discovery:', error);
+        kdShowError(error.message || 'Failed to load data from Supabase.');
+    }
+}
+
+// Make functions globally accessible
+window.loadKeywordDiscovery = loadKeywordDiscovery;
+window.kdApplyFilters = kdApplyFilters;
+window.kdResetFilters = kdResetFilters;
+window.showKeywordDetail = showKeywordDetail;
+window.closeKdDetailModal = closeKdDetailModal;
 }
 
 // Make functions globally accessible
