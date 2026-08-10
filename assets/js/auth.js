@@ -79,6 +79,25 @@ async function handleAuthState() {
         return; // Stop here so it doesn't redirect to the dashboard
     }
 
+    let { data, error } = await supabaseClient.auth.getSession();
+    let session = data?.session;
+
+    if (!session && (window.location.hash.includes('access_token') || window.location.search.includes('type=magiclink'))) {
+        console.log('Magic link detected, waiting for session to initialize...');
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        const retryResult = await supabaseClient.auth.getSession();
+        session = retryResult.data?.session;
+    }
+
+    if (error) {
+        console.error('Session error:', error);
+        return;
+    }
+
+    if (!session) {
+        return;
+    }
+
     // Extract LINE User ID from session metadata
     const lineUserId = getLineUserId(session);
 
