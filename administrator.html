@@ -2413,6 +2413,7 @@ onclick="document.getElementById('alerts-log-error').classList.add('hidden')">×
             loadSearchStrategies();
             loadBrands();
             loadAlertsLog();
+            loadPopularityData();
             loadPurchaseKeywords();
             loadBrandComparison();
             loadEmergingDeclining();
@@ -5945,6 +5946,7 @@ async function loadEmergingDeclining() {
         console.error('Error loading emerging vs declining:', error);
         edShowError(error.message || 'Failed to load data from Supabase.');
     }
+}
     // ============================================
 // SECTION: Page 14 — Keyword Discovery
 // ============================================
@@ -6373,7 +6375,7 @@ window.kdApplyFilters = kdApplyFilters;
 window.kdResetFilters = kdResetFilters;
 window.showKeywordDetail = showKeywordDetail;
 window.closeKdDetailModal = closeKdDetailModal;
-}
+
 
 // Make functions globally accessible
 window.loadEmergingDeclining = loadEmergingDeclining;
