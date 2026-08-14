@@ -4696,7 +4696,15 @@ async function loadPopularityData() {
             return;
         }
 
+popShowContent();
+
         popRenderDateRange(data);
+        popRenderSummaryCards(data);
+        popRenderChart(data);
+        popRenderStatsTable(data);
+        popRenderCorrelation(data);
+        popRenderPeaks(data);
+        
         popRenderSummaryCards(data);
         popRenderChart(data);
         popRenderStatsTable(data);
@@ -5409,7 +5417,7 @@ async function loadBrandComparison() {
 
         // Populate dropdowns
         bcPopulateBrandDropdowns();
-
+            bcShowContent();
         // Auto-select first two brands
         if (bcAvailableBrands.length >= 2) {
             document.getElementById('bc-brand-a').value = bcAvailableBrands[0];
@@ -5937,10 +5945,9 @@ async function loadEmergingDeclining() {
         edCollectFilters();
         edPopulateFilters();
 
+        edShowContent();
         // Initial render with no filters
         edApplyFilters();
-
-        edShowContent();
 
     } catch (error) {
         console.error('Error loading emerging vs declining:', error);
@@ -6355,13 +6362,13 @@ async function loadKeywordDiscovery() {
         kdTimeSeriesData = data.time_series || [];
         kdPatternsData = data.keyword_patterns || [];
 
+        kdShowContent();
+
         kdRenderSummaryCards(data);
         kdRenderTable(data);
         kdRenderTimeSeriesChart(data);
         kdRenderPatterns(data);
         kdRenderSignalDistribution(data);
-
-        kdShowContent();
 
     } catch (error) {
         console.error('Error loading keyword discovery:', error);
