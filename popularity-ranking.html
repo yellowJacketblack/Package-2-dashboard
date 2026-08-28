@@ -614,7 +614,7 @@ function renderTrendChart(data) {
     }
     
     trendChart = new Chart(ctx, {
-        type: 'line',
+        type: 'bar',
         data: { datasets },
         options: {
             responsive: true,
@@ -898,6 +898,9 @@ async function loadAllData() {
             showNoData();
             return;
         }
+
+        // Show content FIRST, then render
+        showMainContent();
         
         // Render all sections
         renderDataRangeBadge(data);
@@ -906,8 +909,6 @@ async function loadAllData() {
         renderStatsTable(data);
         renderCorrelationMatrix(data);
         renderPeaks(data);
-        
-        showMainContent();
         
     } catch (error) {
         console.error('Error loading popularity data:', error);
