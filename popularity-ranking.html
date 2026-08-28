@@ -572,9 +572,14 @@ function renderSummaryCards(data) {
 
 function renderTrendChart(data) {
     const ctx = document.getElementById('trendChart').getContext('2d');
+
+    // Store chart data for MA toggling
+    // chart_data is saved as a single record, so it's nested under .data
+    let chartDataRaw = data.popularity_chart_data || {};
+    allChartData = chartDataRaw.data || chartDataRaw; // Unwrap .data if present
     
     // Store chart data for MA toggling
-    allChartData = data.popularity_chart_data || {};
+    // allChartData = data.popularity_chart_data || {};
     allMovingAvg7 = data.popularity_moving_avg_7day || {};
     allMovingAvg30 = data.popularity_moving_avg_30day || {};
     
@@ -614,7 +619,7 @@ function renderTrendChart(data) {
     }
     
     trendChart = new Chart(ctx, {
-        type: 'bar',
+        type: 'line',
         data: { datasets },
         options: {
             responsive: true,
@@ -693,6 +698,7 @@ function toggleMovingAverage(maType, button) {
                 pointRadius: 1,
                 pointHoverRadius: 5,
                 tension: 0.3
+                fill: false
             });
         } else {
             // Show moving average
@@ -708,6 +714,7 @@ function toggleMovingAverage(maType, button) {
                 pointRadius: 0,
                 pointHoverRadius: 5,
                 tension: 0.4
+                fill: false
             });
         }
     }
