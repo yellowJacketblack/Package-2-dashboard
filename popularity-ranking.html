@@ -578,6 +578,18 @@ function renderTrendChart(data) {
     // chart_data is saved as a single record, so it's nested under .data
     let chartDataRaw = data.popularity_chart_data || {};
     allChartData = chartDataRaw.data || chartDataRaw; // Unwrap .data if present
+
+    // ← added: derive sorted unique dates from all brands
+    const dateSet = new Set();
+    for (const key of Object.keys(allChartData)) {
+        if (key === 'data') continue;
+        const series = allChartData[key];
+        if (!Array.isArray(series)) continue;
+        for (const point of series) {
+            if (point.date) dateSet.add(point.date);
+        }
+    }
+    sortedDates = Array.from(dateSet).sort();
     
     // Store chart data for MA toggling
     // allChartData = data.popularity_chart_data || {};
